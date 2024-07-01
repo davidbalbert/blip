@@ -2,7 +2,7 @@ A sketch for a new systems programming language. Rust and Swift are C++ replacem
 
 Basically, I want to use Go for lower level things, but it's not quite suited to some of those.
 
-I want approximately the amount of memory safety/data race safety you get from Go, but without GC – zero values/no uninitialized variables, nil pointer dereference is well defined and will panics, default concurrency patterns (channels and goroutines) push you towards writing correct code without forcing it on you (there's still shared memory and locks if you want to shoot yourself in the foot). Doesn't have ironclad type level guarantees like Rust and Swift. Just get you 90% of the way there.
+I want approximately the amount of memory safety/data race safety you get from Go, but without GC – zero values/no uninitialized variables, nil pointer dereference is well defined and will panics, default concurrency patterns (channels and goroutines) push you towards writing correct code without forcing it on you (there's still shared memory and locks if you want to shoot yourself in the foot). Doesn't have ironclad type level guarantees like Rust and Swift. It should just get you 90% of the way there.
 
 Performance is an open question. One option: just as much speed and control as Rust, just with fewer ideas and abstractions. Maybe this is possible given the relaxed memory safety ideas above? Another option: 90% of the performance guarantees as Rust. We may already be doing this by using zero values.
 
@@ -29,7 +29,17 @@ func main() {
 }
 ```
 
-
+Test cases:
+- An OS kernel
+    - Can we start goroutines with statically allocated stacks?
+    - Can interrupt handlers write events to a buffered channel?
+        - Can we guarantee we never deadlock? Do we need dynamic allocations for this? Channel likely needs an infinite buffer.
+    - Device drivers.
+- UI toolkit
+    - System events delivered through a channel.
+        - What happens to the responder chain?
+    - Background loading and saving of documents.
+    - Main thread restrictions?
 
 - C replacement (of course)
 - Smaller than Rust

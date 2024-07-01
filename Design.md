@@ -41,6 +41,9 @@ Test cases:
     - Background loading and saving of documents.
     - Main thread restrictions?
 
+
+Notes:
+
 - C replacement (of course)
 - Smaller than Rust
 - Fun like Go

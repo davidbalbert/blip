@@ -107,15 +107,18 @@ Notes:
 - Parsers?
     - PEG?
     - Ohm?
-- Questions
-	- Nil or optional?
-	- Tagged unions?
-	- Error handling?
-	- Generics without fat pointers?
-	- How close to Go syntax?
-	- Can you add some array programming to an imperative language in a way that feels nice?
-    - What are the target usecases?
-        - Not servers. Use Go for that. Anything that can use a GC should use a GC.
-        - OSs/firmware
-        - Medium to high performance requirements. Doesn't have to be as fast as Rust. But you should have control of performance.
-        - 
+- Custom allocators?
+    - Zig's approach, while principled feels really heavy. Can we have the same flexibility without having to pass the allocator in? Do we even need this?
+- Array programming?
+- Nil or optional?
+- Tagged unions?
+- Error handling?
+- Generics without fat pointers?
+- How close to Go syntax?
+- Can you add some array programming to an imperative language in a way that feels nice?
+- What are the target usecases?
+    - Not servers. Use Go for that. Anything that can use a GC should use a GC.
+    - OSs/firmware
+    - Medium to high performance requirements. Doesn't have to be as fast as Rust. But you should have control of performance.
+    - Go semantics with perfect C interop.
+    - Memory safe C (not memory safe C++)

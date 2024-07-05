@@ -62,11 +62,10 @@ Notes:
 	- Easy C interop (like `zig cc`)
 - Good string support
     - A bit more high level than Go.
-    - Iterate over code points
     - Iterate over bytes
     - Iterate over code points
     - Iterate over grapheme clusters, but a Char is not a grapheme cluster.
-    - UTF-16 support (for )
+    - UTF-16 support (for interfacing with UI frameworks)
 - Structs
     - Default C layout? Or do you have to opt in?
 - Iteration

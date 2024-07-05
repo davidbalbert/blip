@@ -50,7 +50,7 @@ Notes:
 - One method interfaces and structural conformance
 - Checked pointer dereference
 - Flavors - with upgrading 
-	- noalloc (only stack + heap)
+	- noalloc (only stack + global)
 	- nomultiplex
 	- full
 - Special casing ok

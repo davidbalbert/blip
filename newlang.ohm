@@ -1,0 +1,33 @@
+NewLang {
+    SourceFile = (Import | TopLevelDeclaration)* end
+
+    Import = "import" string
+
+    TopLevelDeclaration = Function
+                        | GlobalVar
+
+    Function = "func" id "(" Args ")" type? "{" Statement* "}"
+    Global = "var" id type? "=" literal
+
+    Args = ListOf<Arg, ",">
+    Arg = id type
+
+    Statement = StatementBody #(spacesNoNl (";" | "\n"))
+    StatementBody = Call
+    			  | Expression
+    
+    Call = id "." id "(" ListOf<Expression, ","> ")"
+    Expression = id | literal
+    
+    literal = string | number
+
+    id = ~reserved letter (letter | digit)*
+    reserved = type | keyword
+    type = "int" | "string"
+    keyword = "import" | "func" | "var" | "return" | "if" | "else" | "for" | "break" | "continue"
+
+    string = "\"" (~"\"" any)* "\""
+    number = digit+
+    
+    spacesNoNl = (~"\n" space)*
+}

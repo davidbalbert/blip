@@ -97,6 +97,13 @@ Notes:
     - Swift-like slicing of arbitrary data structures?
 - Defer
 - Catchable panic?
+    - I hope so. Want to be able to test custom data structures
+- Bootstrapping
+    - Ship compiler compiled to VM bytecode (like Zig)
+    - But don't use Web Assembly - it doesn't support stack switching yet. Instead, make a custom tiny vm (tvm) with a reference implementation in C.
+    - Ideas: https://tinlizzie.org/VPRIPapers/tr2015004_cuneiform.pdf
+- Declarative register files?
+    - https://github.com/apple/swift-mmio
 - Parsers?
     - PEG?
     - Ohm?

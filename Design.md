@@ -8,27 +8,6 @@ Performance is an open question. One option: just as much speed and control as R
 
 Don't shoot for zero-cost abstractions. We want nice abstractions, and nice abstractions sometimes have costs. If you need more performance, you should be able to program ergonomically without the abstraction.
 
-Syntax ideas. Starting from Go. Will probably change later.
-
-Echo
-
-```
-import (
-    "fmt"
-    "os"
-)
-
-func main() {
-    for i, arg := os.Args {
-        fmt.Printf("%s", arg)
-        if i < len(os.Args)-1 {
-            fmt.Printf(" ")
-        }
-    }
-    fmt.Println()
-}
-```
-
 Test cases:
 - An OS kernel
     - Can we start goroutines with statically allocated stacks?

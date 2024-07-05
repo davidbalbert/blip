@@ -102,6 +102,7 @@ Notes:
     - Ship compiler compiled to VM bytecode (like Zig)
     - But don't use Web Assembly - it doesn't support stack switching yet. Instead, make a custom tiny vm (tvm) with a reference implementation in C.
     - Ideas: https://tinlizzie.org/VPRIPapers/tr2015004_cuneiform.pdf
+    - https://github.com/WebAssembly/stack-switching
 - Declarative register files?
     - https://github.com/apple/swift-mmio
 - Parsers?

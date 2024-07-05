@@ -48,7 +48,7 @@ Notes:
     - associated types?
 - Zero values
 - One method interfaces and structural conformance
-- Checked pointer deterrence
+- Checked pointer dereference
 - Flavors - with upgrading 
 	- noalloc (only stack + heap)
 	- nomultiplex

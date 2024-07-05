@@ -116,6 +116,8 @@ Notes:
 - Generics without fat pointers?
 - How close to Go syntax?
 - Can you add some array programming to an imperative language in a way that feels nice?
+- Registers as variables?
+    - I.e. better inline assembly?
 - What are the target usecases?
     - Not servers. Use Go for that. Anything that can use a GC should use a GC.
     - OSs/firmware

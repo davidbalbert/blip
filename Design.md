@@ -76,6 +76,17 @@ Notes:
 - Defer
 - Catchable panic?
     - I hope so. Want to be able to test custom data structures
+- Errors not exceptions
+    - return instead of throw
+- No function/method overloading
+- Type inference of local variables only
+- Guaranteed cleanup?
+    - Go uses finalizers, which rely on GC
+    - Swift uses deinit on refcounted classes and non-copyable types (move-only types)
+    - C++: RAII
+        - Easy for stack allocated local variables. How does it work for heap allocations?
+    - An option: just support defer, and don't guarantee anything.
+- Reference counting?
 - Bootstrapping
     - Ship compiler compiled to VM bytecode (like Zig)
     - But don't use Web Assembly - it doesn't support stack switching yet. Instead, make a custom tiny vm (tvm) with a reference implementation in C.
@@ -89,12 +100,12 @@ Notes:
 - Custom allocators?
     - Zig's approach, while principled feels really heavy. Can we have the same flexibility without having to pass the allocator in? Do we even need this?
 - Array programming?
+    - GPU compute? Probably getting out of scope.
 - Nil or optional?
 - Tagged unions?
 - Error handling?
 - Generics without fat pointers?
 - How close to Go syntax?
-- Can you add some array programming to an imperative language in a way that feels nice?
 - bigint by default?
 - Registers as variables?
     - I.e. better inline assembly?
@@ -104,3 +115,4 @@ Notes:
     - Medium to high performance requirements. Doesn't have to be as fast as Rust. But you should have control of performance.
     - Go semantics with perfect C interop.
     - Memory safe C (not memory safe C++)
+- What operations/algorithms are common enough in these usecases to deserve a special case language construct?

@@ -57,6 +57,21 @@ struct Array<T> {
 struct Foo: ~Copyable {
 }
 
+type Fd nocopy struct {
+}
+
+type Fd moved struct {
+}
+
+type Node counted struct {
+}
+
+nocopy struct Fd {
+}
+
+counted struct Node {
+}
+
 // THIS IS GOOD!
 func free(x : !*int) {
     p = (unsafe *void) x;

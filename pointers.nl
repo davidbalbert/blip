@@ -47,3 +47,12 @@ func free(x : !*int) {
 #*int -> *int       // Re: the above. Could this just be the safe way to create a weak reference? That would
                     // have some gross asymetry. *int -> #*int consumes the original, but #*int -> *int leaves
                     // the original in place.
+
+
+// noncopy operators
+
+// move, take, consume, drop, eat!?
+// moving, taking, consuming, dropping, eating!?
+
+// borrow - is there a pointer type that would work for this
+// inout -- ditto

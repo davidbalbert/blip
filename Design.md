@@ -86,7 +86,14 @@ Notes:
     - C++: RAII
         - Easy for stack allocated local variables. How does it work for heap allocations?
     - An option: just support defer, and don't guarantee anything.
-- Reference counting?
+    - **nocopy types must be past to a function that consumes them.**
+- Reference counting
+    - Maybe normal structs don't have deinit, but you can assign a deinit (multiple deinits?) to a refcounted pointer.
+    - maybe nocopy types have a deinit?
+        - At least nocopy structs/enums should have a deinit.
+        - Is it weird if nocopy structs/enums can have a deinit but nocopy/owned pointers can't?
+    - What about owned pointers? Should they have a deinit too?
+        - **No! "owned" is equivalent to "nocopy", so all they need is to be passed to a function that consumes them.**
 - Bootstrapping
     - Ship compiler compiled to VM bytecode (like Zig)
     - But don't use Web Assembly - it doesn't support stack switching yet. Instead, make a custom tiny vm (tvm) with a reference implementation in C.

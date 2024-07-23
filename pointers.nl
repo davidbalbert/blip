@@ -56,3 +56,8 @@ func free(x : !*int) {
 
 // borrow - is there a pointer type that would work for this
 // inout -- ditto
+
+// Lifetimes:
+// Rust says the lifetime of foo<'a> can't outlive the lifetime of 'a.
+// What if instead foo<'a> extends the lifetime of 'a? E.g. 'a can't be
+// dropped until foo<'a> is dropped. Are these the same thing?

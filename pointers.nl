@@ -40,7 +40,7 @@ func free(x : !*int) {
 
 // unsafe conversions
 !*int -> *int
-(weak *int) -> *int // Do we actually need weak pointers? The  refcounting machinery could just nil out normal
+(weak *int) -> *int // Do we actually need weak pointers? The refcounting machinery could just nil out normal
                     // pointers, and using normal pointers would be how you break a reference cycle. If we do
                     // need weak pointers, then this should definitely be unsafe.
 

@@ -94,6 +94,10 @@ Notes:
         - Is it weird if nocopy structs/enums can have a deinit but nocopy/owned pointers can't?
     - What about owned pointers? Should they have a deinit too?
         - **No! "owned" is equivalent to "nocopy", so all they need is to be passed to a function that consumes them.**
+            - This would allow us to use defer rather than RAII and still be guaranteed that we clean things up.
+        - Could a refcounted pointer (#*Foo) could contain a nocopy type (e.g. Fd) without being nocopy itself? That would
+          allow us to force #*Foo to have a deinit. But types that contain nocopy types must also be nocopy.
+            - **You can have a refcounted pointer to a nocopy type!**
 - Bootstrapping
     - Ship compiler compiled to VM bytecode (like Zig)
     - But don't use Web Assembly - it doesn't support stack switching yet. Instead, make a custom tiny vm (tvm) with a reference implementation in C.

@@ -7,7 +7,8 @@ type op enum {
     case div
 }
 
-// if you want to specify a type, you need to do it in the first case
+// If you want to specify a type, you need to do it in the first case. This is also not bridgable to C,
+// because we don't know how int and C.int are related. int32 would be bridgable.
 type op enum {
     case add int = 1
     case sub = 5
@@ -47,7 +48,7 @@ const (
 // must be unique.
 
 type op enum {
-    case add = 1
+    case add int = 1
     case sub = 1
     case mul = 1
     case div = 1
@@ -126,8 +127,7 @@ type Op enum {
 
 func Perform(op Op)
 
-// and we could export them as int constants. Note that we can't export an int enum, because we have no
-// idea if int in Newlang is the same as int in C.
+// And we could export them as int constants.
 
 typedef Op int64_t; // remember, this doesn't actually create a new type in C, just a new name. But its still
                     // useful for documentation purposes.
@@ -147,3 +147,17 @@ void Perform(Op op);
 // 3. We can't export any functions that take enums as arguments.
 
 // I think the first option is the best. It's useful to export enums to C, and undefined behavior is bad.
+
+
+// Associated values
+
+type Insn enum {
+    case add(int, int)
+    case inc(int)
+}
+
+// or maybe
+type Insn enum {
+    case (int, int) add
+    case (int) add
+}

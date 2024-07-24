@@ -12,48 +12,83 @@ switch x {
 
 var x ?int
 switch x {
-    // looks like a type declaration
+    // looks like a type declaration. That's nice.
     case x int:
         // ...
     case nil:
         // ...
 }
 
-type Ab enum {
-    case a(int)
-    case b(string)
-}
-
-var ab Ab
-switch ab {
-    case .a(i):
-        // ...
-    case .b(s):
-        // ...
-}
-
-// Are error unions special, or can we have unnamed unions in general?
-
-type hmm union {
+type val union {
     case int
-    case error
+    case float
 }
 
-type !int = hmm // the compiler does this automatically
-
-var h hmm
-switch h {
-    // rhymes with `var x int`, which I like
-    case x int:
+// similar to ?int, but only supports types, not values.
+var x val
+switch x {
+    case i int:
         // ...
-    case err error:
+    case f float:
         // ...
 }
 
-// What about C unions?
-type hmm untagged union {
-    var i int
-    var s string
+// similar to ?int, but not exactly the same: you can't do a `case x int` and unwrap things that way.
+type optint enum {
+    case some (int)
+    case none
 }
 
-// could also be spelled `extern union`.
+var x optint
+switch x {
+    case some(i):
+        // ...
+    case none:
+        // ...
+}
+
+
+
+type Op enum {
+    case add
+    case inc
+}
+
+var op Op
+switch op {
+    case add:
+        // ...
+    case inc:
+        // ...
+}
+
+
+type Insn enum {
+    case add(int, int)
+    case inc(int)
+}
+
+var insn Insn
+switch insn {
+    case add(i, j):
+        // ...
+    case inc(i):
+        // ...
+}
+
+
+// or if using this
+type Insn enum {
+    case (int, int) add
+    case (int) add
+}
+
+// then maybe
+
+var insn Insn
+switch insn {
+    case (i, j) add:
+        // ...
+    case (i) inc:
+        // ...
+}

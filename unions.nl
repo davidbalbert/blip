@@ -17,8 +17,8 @@ switch ie {
 
 // What about C unions?
 type hmm untagged union {
-    var i int
-    var s string
+    i int
+    s string
 }
 
 // could also be spelled `extern union`.

@@ -19,6 +19,11 @@ var x ?int  // An optional int. nilable. Not representable in C. Could we have a
             // to represent this? optint? What's the ABI here?
 var x ?*int // An optional pointer to an int. nilable. Can be passed to C.
 
+// int is non-optional. It's guaranteed to be non-nil. What's the equivalent for pointers? It can't just
+// be *int, because those can also be nil. Perhaps this means we shouldn't have ?*int. We could either
+// allow some sort of pattern matching on *int, or we could have a separate type for non-nil pointers.
+// This is another annoying asymetry in the current sketch.
+
 // x is move only, so we need to call free to clean it up. Free consumes the pointer
 // and then does an unsafe cast to get rid of its "owned-ness". This is the consume
 // operation.

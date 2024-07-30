@@ -196,3 +196,49 @@ Furthermore, for calling Newlang code from C, we'll either have to say "you can'
 
 
 There are also all sorts of good questions re: zero values and defining a stable ABI.
+
+
+
+# Flow analysis and pointer nil checking
+
+Also, I found [this](https://github.com/golang/go/issues/49202), and [this](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-8.0/nullable-reference-types) last night, and I rather like the ideas. Gotta play around with it, but this seems really nice:
+
+```
+var p ?*int
+*p // compile error: p might be nil
+if p == nil {
+    // ...
+    // return
+}
+// at this point p is a *int.
+*p // no error
+```
+
+```
+var p ?*int
+if p != nil {
+    // ...
+    return
+}
+*p // compile error: p is guaranteed to be nil.
+// the above is similar to the way a variable that once held a nocopy type that has been moved out can no longer be accessed
+```
+
+```
+var p ?*int
+if p == nil {
+    // ...
+    // no return
+}
+// p is still ?*int
+*p // compile error: p might be nil
+```
+
+Obviously this doesn't prevent use after free though. Have to think more about borrows etc. and how they would fit into this. Your proposal to make `*int` a borrowed reference might be the way to go. But I haven't done enough thinking to understand what that might look like.
+
+I like how this has the same effect as Swift's `guard else` for safely unwrapping without creating a new nested scope, but without introducing any other keywords or semantics. You write it just like you would in C, but the compiler is more helpful.
+
+Other thoughts:
+1. You can use a force unwrap to get rid of the error: `*(p!)` or something like that. Don't love the way that's spelled  though.
+2. Not sure if these should be errors or warnings. I think probably errors, but there's something about making them warnings that appeals to me – the language wants to help you do the right thing, not force you to. One argument for errors: you want the rules to be the same for optional values (e.g. `?int`) and it's not quite clear what that would look like.
+3. Not sure how expensive this sort of flow analysis is. I wouldn't want to do this at the expense of fast compile times.

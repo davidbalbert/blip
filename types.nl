@@ -325,6 +325,12 @@ func ref(v (nocopy T), deinit func(v (nocopy T))) (counted *T)
 // You can also integrate external reference counted types by providing custom retain and release functions.
 func ref(v T, retain func(v T), release func(v T)) (counted *T)
 
+// You can make a weak reference using the weak builtin
+func weak(p (counted *T)) (weak *T)
+
+p := = ref(5) // typeof(p) is (counted *int)
+w := weak(p)  // typeof(w) is (weak *int)
+
 
 // TODO: non-escapable types, lifetime dependencies, etc.
 type Foo (noescape int)

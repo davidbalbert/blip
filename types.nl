@@ -302,8 +302,28 @@ var p2 (nocopy *Fd) = &f // ok
 p3 := &f                 // ok, typeof(p3) is (nocopy *Fd)
 
 
+// Reference counting
 
+// In pseudocode, a refcounted pointer is a pointer to a struct struct that's stored on the heap. The count
+// is updated atomically.
+struct {
+    refcount int
+    retain func(T)
+    release func(T)
+    deinit func(T)
+    value T
+}
 
+// To make a refcounted pointer, use the ref builtin. The type passed to ref is copied into the refcounted struct.
+// If it's a pointer, the pointer is copied. If it's a value, the value is copied.
+func ref(v T) (counted *T)
+
+// Refcounted pointers can own nocopy types. To do this, you must supply a deinit function that
+// consumes the underlying value.
+func ref(v (nocopy T), deinit func(v (nocopy T))) (counted *T)
+
+// You can also integrate external reference counted types by providing custom retain and release functions.
+func ref(v T, retain func(v T), release func(v T)) (counted *T)
 
 
 // TODO: non-escapable types, lifetime dependencies, etc.

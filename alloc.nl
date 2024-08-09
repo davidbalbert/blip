@@ -14,7 +14,8 @@ type AllocateFreer interface {
 }
 
 func make(T) !*T                    // allocates a T and returns a pointer to its zero value. Panics if allocation fails.
-x := &T{}                           // Same as make(T). typeof(x) is !*T
+x := &T{}                           // Same as make(T). typeof(x) is !*T.
+                                    // TODO: if x doesn't escape, should T be stack allocated?
 
 // Make has support for custom allocators. In this form, it returns nil on failure. It must keep metadata about which
 // allocator was used so the runtime knows how to free the pointer.

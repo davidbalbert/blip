@@ -308,9 +308,7 @@ p3 := &f                 // ok, typeof(p3) is (nocopy *Fd)
 // is updated atomically.
 struct {
     refcount int
-    retain func(T)
-    release func(T)
-    deinit func(T)
+    cleanup func(T)
     value T
 }
 
@@ -318,12 +316,22 @@ struct {
 // If it's a pointer, the pointer is copied. If it's a value, the value is copied.
 func ref(v T) (counted *T)
 
-// Refcounted pointers can own nocopy types. To do this, you must supply a deinit function that
-// consumes the underlying value.
+// You can also supply a cleanup function that will be called when the refcount reaches 0.
+func ref(v T, cleanup func(v T)) (counted *T)
+
+// Refcounted pointers can own nocopy types, and must provide a cleanup function to consume the
+// owned value.
 func ref(v (nocopy T), deinit func(v (nocopy T))) (counted *T)
 
 // You can also integrate external reference counted types by providing custom retain and release functions.
 func ref(v T, retain func(v T), release func(v T)) (counted *T)
+
+// A custom refcounted pointer has a different layout in memory:
+struct {
+    retain func(T)
+    release func(T)
+    value T
+}
 
 // You can make a weak reference using the weak builtin
 func weak(p (counted *T)) (weak *T)

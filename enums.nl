@@ -1,30 +1,30 @@
 // this has no specified underlying type, so it's not bridgable to C.
 // or perhaps enums are compiler asigned ints by default?
 type op enum {
-    case add
-    case sub
-    case mul
-    case div
+    add
+    sub
+    mul
+    div
 }
 
 // If you want to specify a type, you need to do it in the first case. This is also not bridgable to C,
 // because we don't know how int and C.int are related. int32 would be bridgable.
 type op enum {
-    case add int = 1
-    case sub = 5
-    case mul = 10
-    case div = 20
+    add int = 1
+    sub = 5
+    mul = 10
+    div = 20
 }
 
 // if you leave out values, and you're using a numeric type, successive values are incremented
 
 type op enum {
-    case add int // 0
-    case sub     // 1
-    case mul     // 2
-    case div     // 3
-    case mod = 128
-    case pow     // 129
+    add int // 0
+    sub     // 1
+    mul     // 2
+    div     // 3
+    mod = 128
+    pow     // 129
 }
 
 // In Go, constants without an assignment expression, repeat the most recently specified expression
@@ -48,28 +48,28 @@ const (
 // must be unique.
 
 type op enum {
-    case add int = 1
-    case sub = 1
-    case mul = 1
-    case div = 1
+    add int = 1
+    sub = 1
+    mul = 1
+    div = 1
 }
 
 // For enums that are numbers (or perhaps enums that are ints?), we can default to incrementing, like specified above:
 
 type op enum {
-    case add int = 5
-    case sub    // 6
-    case mul    // 7
-    case div    // 8
+    add int = 5
+    sub    // 6
+    mul    // 7
+    div    // 8
 }
 
 // For strings, we can default to the name of the case:
 
 type op enum {
-    case add string // "add"
-    case sub        // "sub"
-    case mul = "Mul"
-    case div        // "div"
+    add string // "add"
+    sub        // "sub"
+    mul = "Mul"
+    div        // "div"
 }
 
 // Perhaps that's it for enums without associated values. They can either have no underlying type, ints, or strings.
@@ -78,10 +78,10 @@ type op enum {
 // How about using them?
 
 type op enum {
-    case add int
-    case sub
-    case mul
-    case div
+    add int
+    sub
+    mul
+    div
 }
 
 // variables
@@ -119,10 +119,10 @@ printInt32(x) // error
 // Could these get exported to C? At minimum, we'd have to export everything:
 
 type Op enum {
-    case Add int64
-    case Sub
-    case Mul
-    case Div
+    Add int64
+    Sub
+    Mul
+    Div
 }
 
 func Perform(op Op)

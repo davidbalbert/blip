@@ -1,7 +1,7 @@
 // Are error unions special, or do we have general tagged unions?
 type interror union {
-    case int
-    case error
+    int
+    error
 }
 
 type !int = interror // the compiler does this automatically

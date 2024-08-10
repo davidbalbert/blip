@@ -277,19 +277,29 @@ var f Fd           // "Fd (nocopy)". Or maybe just "Fd"? The former has less sym
 
 // Pointers
 
-// A normal pointer. Can be nil. Panic on nil dereference.
-*int    // A normal pointer. Panic on nil dereference
-!*int   // A non-nil pointer.
+// A borrowed pointer. Panic on nil dereference. No action on drop. Cannot outlive the value it
+// points to, which means unless we have some sort of support for lifetime dependencies, it can't
+// be escaped. Passing to C is unsafe, but allowed. When passed to C, the programmer is responsible
+// responsible for ensuring that it doesn't escape.
+//
+// TODO: How is it passed to C? Options:
+// - automatically cast to (unsafe *T)
+// - must be manually cast to (unsafe *T)
+*int
+
+// A pointer with unknown ownership. The programmer is responsible for managing the memory. Panics
+// on nil dereference, but use-after-free is possible. C pointers are imported as unsafe.
+(unsafe *int)
+     
+// An owned pointer. Just like other noncopy types, it must be consumed or escaped. 
+
 
 (nocopy *int)   // An owned pointer. Must be consumed or escaped.
-(borrowed *int) // A borrowed pointer. Can be made safely from an owned pointer. Only valid in function signatures.
-                // cannot be escaped or returned.
 (counted *int)  // A refcounted pointer. Alt: (rc *int), (strong *int). Never nil.
 (weak *int)     // A weak pointer. Derived from a refcounted pointer. Becomes nil when the refcounted pointer is freed.
 
 // owned, borrowed, and refcounted pointers have shorthands:
 $*int // (nocopy *int)
-&*int // (borrowed *int)
 #*int // (counted *int)
 
 

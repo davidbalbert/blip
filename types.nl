@@ -274,7 +274,6 @@ var i (nocopy int) // "(nocopy int)"
 var f Fd           // "Fd (nocopy)". Or maybe just "Fd"? The former has less symmetry, but is more helpful, so I
                    // think it's better.
 
-
 // Pointers
 
 // A borrowed pointer. Panic on nil dereference. No action on drop. Cannot outlive the value it
@@ -304,14 +303,59 @@ var f Fd           // "Fd (nocopy)". Or maybe just "Fd"? The former has less sym
 $*int // (nocopy *int)
 #*int // (counted *int)
 
-
 // For clarity, we'll write pointers out in longhand, but in general, shorthand is preferred.
 
-// Just like structs which contain nocopy types, pointers to nocopy types must also be nocopy.
-var f Fd
-var p1 *Fd = &f          // error: Fd is nocopy so p1 must be nocopy
-var p2 (nocopy *Fd) = &f // ok
-p3 := &f                 // ok, typeof(p3) is (nocopy *Fd)
+
+// Pointer conversions
+
+// A stack value can be borrowed multiple times
+var x int
+var p1 *int = &x          // borrowed pointer.
+p2 := &x                  // multiple borrows of a stack allocated value is ok. typeof(p2) is *int
+
+// A local variable can be moved into an owned pointer, in which case the original variable is consumed. Escape
+// analysis is performed. If the variable escapes (e.g. is returned) or is consumed by a function, it will be
+// heap allocated.
+var x int
+var p (nocopy *int) = &x // may be stack or heap allocated
+print(x)                 // error: x was moved to p. It doesn't matter that x is copyable.
+
+// Another syntax for the above
+var x int
+p := (nocopy *int)(&x)
+
+func foo() $*int {
+    var x int
+    return &x // x is heap allocated
+}
+
+func bar($*int) { ... }
+func foo() {
+    var x int
+    bar(&x) // x is heap allocated
+}
+
+
+// Taking the address of a literal works the same way. If it escapes, it's heap allocated, otherwise it's
+// stack allocated. Either way, the pointer is owned.
+var p (nocopy *int) = &5 
+p := &5
+var p *int = &5 // error: you cannot borrow a literal
+
+// To force heap allocation, use make.
+p := make(int) // typeof(p) is (nocopy *int). The int is on the heap.
+
+
+// You can borrow an owned pointer
+var x int
+var p1 (nocopy *int) = &x
+var p2 *int = p1 // implicit borrow. typeof(p2) is *int
+
+
+// On the other hand, if a variable has been borrowed, it can't be moved into an owned pointer.
+var x int
+p1 := &x                   // typeof p1 is *int
+var p2 (nocopy *int) = &x  // error: p1 borrows x, so p2 can't own it.
 
 
 // Reference counting

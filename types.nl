@@ -291,14 +291,16 @@ var f Fd           // "Fd (nocopy)". Or maybe just "Fd"? The former has less sym
 // on nil dereference, but use-after-free is possible. C pointers are imported as unsafe.
 (unsafe *int)
      
-// An owned pointer. Just like other noncopy types, it must be consumed or escaped. 
+// An owned pointer. Just like other noncopy types, it must be consumed or escaped. Just like it's
+// possible to borrow a nocopy type, it's possible to borrow a nocopy pointer.
+//
+// TODO: can you make multiple borrows of a nocopy *T? I would like the answer to be yes.
+(nocopy *int)
 
-
-(nocopy *int)   // An owned pointer. Must be consumed or escaped.
 (counted *int)  // A refcounted pointer. Alt: (rc *int), (strong *int). Never nil.
 (weak *int)     // A weak pointer. Derived from a refcounted pointer. Becomes nil when the refcounted pointer is freed.
 
-// owned, borrowed, and refcounted pointers have shorthands:
+// owned and refcounted pointers have shorthands:
 $*int // (nocopy *int)
 #*int // (counted *int)
 

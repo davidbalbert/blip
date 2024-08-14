@@ -154,8 +154,7 @@ enum {
 
 // String values
 //
-// An open question: are these bridgable to C? We have to figure out whether strings are
-// bridgable to C, which depends on whether they're null terminated or not.
+// TODO: Are these bridgable to C? If so, how?
 enum {
     north string // "north"
     south        // "south"

@@ -1,4 +1,12 @@
-A sketch for a new systems programming language. Rust and Swift are C++ replacements – too big. Zig is a C replacement, but it doesn't have any memory safety. Go is lots of fun, but GC makes it a bit too high level. CSP is great.
+A sketch for a new systems programming language to replace C.
+
+- Fun like Go
+- More memory safe than Zig
+- Smaller than Rust
+
+## Details and stray thoughts
+
+Rust and Swift are C++ replacements – too big. Zig is a C replacement, but it doesn't have any memory safety. Go is lots of fun, but GC makes it a bit too high level. CSP is great.
 
 Basically, I want to use Go for lower level things, but it's not quite suited to some of those.
 

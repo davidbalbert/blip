@@ -4,7 +4,7 @@ var x int
 switch x {
     case 1:
         // ...
-    case 2:
+    case 2, 3, 4:
         // ...
     default:
         // ...
@@ -20,8 +20,8 @@ switch x {
 }
 
 type val union {
-    case int
-    case float
+    int
+    float
 }
 
 // similar to ?int, but only supports types, not values.
@@ -33,15 +33,29 @@ switch x {
         // ...
 }
 
+type val untion {
+    n int
+    d float
+}
+
+// Don't love this
+var x val
+switch x {
+    case n:
+        // ...
+    case d:
+        // ...
+}
+
 // similar to ?int, but not exactly the same: you can't do a `case x int` and unwrap things that way.
 type optint enum {
-    case some (int)
-    case none
+    some (int)
+    none
 }
 
 var x optint
 switch x {
-    case some(i):
+    case some (i):
         // ...
     case none:
         // ...
@@ -50,8 +64,8 @@ switch x {
 
 
 type Op enum {
-    case add
-    case inc
+    add
+    inc
 }
 
 var op Op
@@ -62,15 +76,19 @@ switch op {
         // ...
 }
 
+type Insn enum int64 {
+    add
+    inc
+}
 
 type Insn enum {
-    case add(int, int)
-    case inc(int)
+    add a, b int, d bool
+    inc
 }
 
 var insn Insn
 switch insn {
-    case add(i, j):
+    case add a, b, d:
         // ...
     case inc(i):
         // ...

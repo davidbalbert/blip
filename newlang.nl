@@ -133,6 +133,10 @@ enum {
 }
 
 // Imported from C. You can define these, but it's better to use sized types.
+//
+// TODO:
+// - How are enums imported? Requirements on C enums are pretty loose, and I want enums to be more strict.
+// - Is it possible to import C enums that are defined in other ways? E.g. with NS_ENUM in Apple's APIs?
 enum {
     north C.int
     south
@@ -166,7 +170,11 @@ enum {
     west          // "west"
 }
 
-
+// TODO:
+// - Exhaustiveness checking.
+// - Can you create an enum out of an a raw value? If so, what happens when it's not a valid value?
+// - Do we have frozen/non-frozen enums like Swift? In Swift, for non-frozen enums, which can have
+//   new cases added later, you need to have an "@unknown default" case when pattern matching.
 
 // Bitfields can't be enums because they're not disjoint.
 

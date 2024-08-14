@@ -5,6 +5,7 @@ A sketch for a new systems programming language to replace C.
 - Fun like Go
 - More memory safe than Zig
 - Smaller than Rust
+- Perfect C interop
 
 "Newlang" is a placeholder name.
 

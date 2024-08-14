@@ -54,12 +54,12 @@ C.ulong
 // A map. E.g. map[string]int. Alt: dict[string]int.
 map[K]V
 
-// A string. No assumed encoding. Source files are always UTF-8, and thus string literals are as well.
+// A string. No assumed encoding. Source files are always UTF-8, and thus string literals are as well. Strings
+// are null-terminated, and can be bridged to C without copying. Like slices, strings store their length and
+// capacity, which can be queried in constant time.
 // TODO:
 // - What should this be? In Go it's an immutable []byte. If you iterate you get runes.
 // - How to deal with extended grapheme clusters?
-// - What about C interop? Should string be null terminated? If the answer is no, then passing a string
-//   to a function that takes a *C.char, needs to be an explicit copy.
 string
 
 // Composite types

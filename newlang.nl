@@ -88,12 +88,12 @@ union {
     two (int, int) // Do we have tuples or is this just a syntactic construct? Let's start with the latter.
 }
 
-// Unions also support types without an explicit tag name. Equivalent to something like `Conn | File`.
+// Unions also support types without an explicit tag name. This is conceptually equivalent to something
+// like `Conn | File`. Unlike structs, methods are not promoted. Instead, consider interfaces, or if you
+// have a union, pattern matching.
 //
-// Does this promote methods? For simplicity, I think it probably shouldn't. We should stick with interfaces
-// for that usecase. If we decide to promote, we can only promote methods that are present on every type in
-// in the union. To be consistent with structs, we should only promote methods if all fields of the union
-// are embedded.
+// Note: if we decide to enable method promotion on unions, we should only do it when the union is composed
+// entirely of embedded types, and when the method is present on every type in the union.
 union {
     Conn
     File

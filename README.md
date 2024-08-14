@@ -1,8 +1,12 @@
+# Newlang
+
 A sketch for a new systems programming language to replace C.
 
 - Fun like Go
 - More memory safe than Zig
 - Smaller than Rust
+
+"Newlang" is a placeholder name.
 
 ## Details and stray thoughts
 

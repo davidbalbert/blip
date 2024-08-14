@@ -99,7 +99,7 @@ union {
     File
 }
 
-// Untagged union. Equivalent to C union. Alt: unsafe union, extern union.
+// Untagged union. Equivalent to C union. Alt: untagged union, extern union.
 unsafe union {
     i int
     f float64

@@ -306,6 +306,49 @@ $*int // (nocopy *int)
 // For clarity, we'll write pointers out in longhand, but in general, shorthand is preferred.
 
 
+// Reference counting
+
+// In pseudocode, a refcounted pointer is a pointer to a struct struct that's stored on the heap. The count
+// is updated atomically.
+struct {
+    refcount int
+    cleanup func(T)
+    value T
+}
+
+// To make a refcounted pointer, use the rc builtin. The type passed to rc is copied into the refcounted struct.
+// If it's a pointer, the pointer is copied. If it's a value, the value is copied.
+func rc(v T) (counted *T)
+
+// You can also supply a cleanup function that will be called when the refcount reaches 0.
+func rc(v T, cleanup func(v T)) (counted *T)
+
+// Refcounted pointers can own nocopy types, and must provide a cleanup function to consume the
+// owned value.
+func rc(v (nocopy T), deinit func(v (nocopy T))) (counted *T)
+
+// You can also integrate external reference counted types by providing custom retain and release functions.
+func rc(v T, retain func(v T), release func(v T)) (counted *T)
+
+// A custom refcounted pointer has a different layout in memory:
+struct {
+    retain func(T)
+    release func(T)
+    value T
+}
+
+// You can make a weak reference using the weak builtin
+func weak(p (counted *T)) (weak *T)
+
+p := = rc(5) // typeof(p) is (counted *int)
+w := weak(p)  // typeof(w) is (weak *int)
+
+p := rc(fd, close) // typeof(p) is (counted *Fd)
+
+// TODO: non-escapable types, lifetime dependencies, etc.
+type Foo (noescape int)
+
+
 // Pointer conversions
 
 // A stack value can be borrowed multiple times
@@ -358,47 +401,10 @@ p1 := &x                   // typeof p1 is *int
 var p2 (nocopy *int) = &x  // error: p1 borrows x, so p2 can't own it.
 
 
-// Reference counting
 
-// In pseudocode, a refcounted pointer is a pointer to a struct struct that's stored on the heap. The count
-// is updated atomically.
-struct {
-    refcount int
-    cleanup func(T)
-    value T
-}
 
-// To make a refcounted pointer, use the rc builtin. The type passed to rc is copied into the refcounted struct.
-// If it's a pointer, the pointer is copied. If it's a value, the value is copied.
-func rc(v T) (counted *T)
 
-// You can also supply a cleanup function that will be called when the refcount reaches 0.
-func rc(v T, cleanup func(v T)) (counted *T)
 
-// Refcounted pointers can own nocopy types, and must provide a cleanup function to consume the
-// owned value.
-func rc(v (nocopy T), deinit func(v (nocopy T))) (counted *T)
-
-// You can also integrate external reference counted types by providing custom retain and release functions.
-func rc(v T, retain func(v T), release func(v T)) (counted *T)
-
-// A custom refcounted pointer has a different layout in memory:
-struct {
-    retain func(T)
-    release func(T)
-    value T
-}
-
-// You can make a weak reference using the weak builtin
-func weak(p (counted *T)) (weak *T)
-
-p := = rc(5) // typeof(p) is (counted *int)
-w := weak(p)  // typeof(w) is (weak *int)
-
-p := rc(fd, close) // typeof(p) is (counted *Fd)
-
-// TODO: non-escapable types, lifetime dependencies, etc.
-type Foo (noescape int)
 
 
 

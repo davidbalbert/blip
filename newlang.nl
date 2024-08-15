@@ -264,26 +264,46 @@ var f (nocopy Fd) // error: Fd is already nocopy
 var i (nocopy int) // "(nocopy int)"
 var f Fd           // "Fd (nocopy)"
 
+// An example:
+var x int = 5
+y := x         // x is copied here
+x++
+print(x, y)    // 6, 5
+
+var z (nocopy int) = 5
+w := z         // z is moved to w
+z++            // error: z was moved to w
+print(z, w)    // error: z was moved to w
+
 // Pointers
 
+// There are 5 pointer types: borrowed, owned, unsafe, reference counted, and weak. All pointers except
+// reference counted pointers can be nil. Dereferencing a nil pointer is defined behavior – it panics.
+// All pointers besides unsafe pointers prevent have temporal safety – they prevent use-after-free.
+
 // A borrowed pointer. Panic on nil dereference. No action on drop. Cannot outlive the value it
-// points to, which means unless we have some sort of support for lifetime dependencies, it can't
-// be escaped. Passing to C is unsafe, but allowed. When passed to C, the programmer is responsible
-// responsible for ensuring that it doesn't escape.
+// points to. Passing to C is unsafe, but allowed. When passed to C, the programmer is responsible
+// for ensuring that if the pointer is escaped, it doesn't outlive its referent.
 //
 // TODO: How is it passed to C? Options:
 // - automatically cast to (unsafe *T)
 // - must be manually cast to (unsafe *T)
 *int
 
+// A pointer that owns the memory it points to. A piece of memory can have exactly one owner. Just like
+// other nocopy types, performing an assignment moves, rather than copies the pointer. This ensures that
+// the "single owner" invariant holds. Unlike other nocopy types, you are allowed to allow a nocopy pointer
+// to reach the end of its scope without consuming or escaping it. At the end of its scope, the pointer
+// is automatically dropped (consumed), and the memory is freed.
+//
+// TODO: explain this better.
+// Owned pointers to nocopy types (nocopy *(nocopy T)) still needs to be consumed or escaped.
+(nocopy *int)
+
 // A pointer with unknown ownership. The programmer is responsible for managing the memory. Panics
 // on nil dereference, but use-after-free is possible. C pointers are imported as unsafe.
 (unsafe *int)
      
-// An owned pointer. Just like other noncopy types, it must be consumed or escaped. Just like it's
-// possible to borrow a nocopy type, it's possible to borrow a nocopy pointer.
-(nocopy *int)
-
 (counted *int)  // A refcounted pointer. Alt: (rc *int), (strong *int). Never nil.
 (weak *int)     // A weak pointer. Derived from a refcounted pointer. Becomes nil when the refcounted pointer is freed.
 

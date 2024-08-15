@@ -7,7 +7,9 @@ A sketch for a new systems programming language to replace C.
 - Smaller than Rust
 - Perfect C interop
 
-"Newlang" is a placeholder name.
+The most complete sketch is in [newlang.nl](https://github.com/davidbalbert/newlang/blob/main/newlang.nl).
+
+"Newlang" is a placeholder.
 
 ## Details and stray thoughts
 

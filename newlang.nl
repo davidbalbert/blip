@@ -302,7 +302,9 @@ the pointer reach the
 // If you have a (nocopy *Fd) and a close() function that takes an Fd value (which itself is nocopy), then
 // the underlying int is copied from the heap to the stack for the call to close, the stack copy is freed
 // automatically when close() returns, and then the heap copy is freed by the caller when the (nocopy *Fd)
-// goes out of scope. 
+// goes out of scope.
+//
+// TODO: clarify double pointers. 
 (nocopy *int)
 
 // A pointer with unknown ownership. The programmer is responsible for managing the memory. Panics

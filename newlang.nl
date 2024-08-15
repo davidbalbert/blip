@@ -64,6 +64,7 @@ string
 
 // Composite types
 
+// Structs
 struct {
     x int
     y int
@@ -85,7 +86,7 @@ struct {
 // Tagged unions. Basically enum with associated values.
 union {
     one int
-    two (int, int) // Do we have tuples or is this just a syntactic construct? Let's start with the latter.
+    two (int, int) // This is not a tuple. Like multiple return values, it's a syntactic construct.
 }
 
 // Unions also support types without an explicit tag name. This is conceptually equivalent to something
@@ -254,32 +255,14 @@ type File struct {
     fd Fd
 }
 
-// Should you be able to use nocopy on variable declarations?
+// You can also use type modifiers in variable declarations.
 var i (nocopy int) = 5
 
-// Pros:
-// - You definitely need to be able to use nocopy on pointer declarations: `var p (nocopy *int)`. This creates
-//   a nice symmetry.
-// - It also creates a symmetry with type declarations. If type declarations are creating new names* for another
-//   type, it stands that anything you can say in a type declaration, you should be able to say in a variable
-//   declaration too.
-//   *This is a lie. Type declarations create new types, not new names. Does this invalidate the above pro?
-//
-// Cons:
-// - If you have a nocopy type like Fd, then `var f (nocopy Fd)` is redundant. Is it allowed? My hunch is no, but
-//   I'm not sure.
-// - It might create a false sense of symmetry with pointer variables. Borrowed, counted, weak, etc. can only be
-//   used on pointers. Maybe we should have type modifiers and pointer modifiers and only allow type modifiers
-//   in type declarations.
-
-// If the answer to the above is yes, is this allowed? It's redundant.
-var f (nocopy Fd)
-
+var f (nocopy Fd) // error: Fd is already nocopy
 
 // How are nocopy types printed in an IDE?
 var i (nocopy int) // "(nocopy int)"
-var f Fd           // "Fd (nocopy)". Or maybe just "Fd"? The former has less symmetry, but is more helpful, so I
-                   // think it's better.
+var f Fd           // "Fd (nocopy)"
 
 // Pointers
 
@@ -299,8 +282,6 @@ var f Fd           // "Fd (nocopy)". Or maybe just "Fd"? The former has less sym
      
 // An owned pointer. Just like other noncopy types, it must be consumed or escaped. Just like it's
 // possible to borrow a nocopy type, it's possible to borrow a nocopy pointer.
-//
-// TODO: can you make multiple borrows of a nocopy *T? I would like the answer to be yes.
 (nocopy *int)
 
 (counted *int)  // A refcounted pointer. Alt: (rc *int), (strong *int). Never nil.

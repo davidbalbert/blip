@@ -277,9 +277,9 @@ print(z, w)    // error: z was moved to w
 
 // Pointers
 
-// There are 5 pointer types: borrowed, owned, unsafe, reference counted, and weak. All pointers except
-// reference counted pointers can be nil. Dereferencing a nil pointer is defined behavior – it panics.
-// All pointers besides unsafe pointers prevent have temporal safety – they prevent use-after-free.
+// There are 5 pointer types: borrowed, owned, unsafe, reference counted, and weak. All pointer types can be nil. 
+// Dereferencing a nil pointer is defined behavior – it panics.
+// All pointers besides unsafe pointers have temporal safety – they prevent use-after-free.
 
 // A borrowed pointer. Panic on nil dereference. No action on drop. Cannot outlive the value it
 // points to. Passing to C is unsafe, but allowed. When passed to C, the programmer is responsible
@@ -292,12 +292,17 @@ print(z, w)    // error: z was moved to w
 
 // A pointer that owns the memory it points to. A piece of memory can have exactly one owner. Just like
 // other nocopy types, performing an assignment moves, rather than copies the pointer. This ensures that
-// the "single owner" invariant holds. Unlike other nocopy types, you are allowed to allow a nocopy pointer
-// to reach the end of its scope without consuming or escaping it. At the end of its scope, the pointer
-// is automatically dropped (consumed), and the memory is freed.
+// the "single owner" invariant holds. Unlike other nocopy types, you don’t always need to consume or escape
+// a nocopy pointer. If the pointer’s underlying type is copyable, you can let
+the pointer reach the
+// end of its scope, at which point the memory it points to will be freed. If the underlying type is nocopy,
+// you need to either escape the pointer or consume the value it points to so that any associated resources (file
+// descriptors, etc.) get cleaned up.
 //
-// TODO: explain this better.
-// Owned pointers to nocopy types (nocopy *(nocopy T)) still needs to be consumed or escaped.
+// If you have a (nocopy *Fd) and a close() function that takes an Fd value (which itself is nocopy), then
+// the underlying int is copied from the heap to the stack for the call to close, the stack copy is freed
+// automatically when close() returns, and then the heap copy is freed by the caller when the (nocopy *Fd)
+// goes out of scope. 
 (nocopy *int)
 
 // A pointer with unknown ownership. The programmer is responsible for managing the memory. Panics

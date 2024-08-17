@@ -377,7 +377,8 @@ var x int
 p := (*int)(&x)
 
 // TOOD: I don't love that the type of &x can be either &*int or *int depending on its context. But I do want
-// the following examples to work, and they seem to require it.
+// the following examples to work, and they seem to require it. This could be solved by having another operator
+// in addition to '&'.
 
 func foo() *int {
     var x int

@@ -277,48 +277,45 @@ print(z, w)    // error: z was moved to w
 
 // Pointers
 
-// There are 5 pointer types: borrowed, owned, unsafe, reference counted, and weak. All pointer types can be nil. 
-// Dereferencing a nil pointer is defined behavior – it panics.
-// All pointers besides unsafe pointers have temporal safety – they prevent use-after-free.
+// There are 5 pointer types: owned, borrowed, unsafe, reference counted, and weak. All pointer types can be nil. 
+// Dereferencing a nil pointer is defined behavior – it panics. All pointers besides unsafe pointers have temporal
+// safety – they prevent use-after-free.
 
-// A borrowed pointer. Panic on nil dereference. No action on drop. Cannot outlive the value it
-// points to. Passing to C is unsafe, but allowed. When passed to C, the programmer is responsible
-// for ensuring that if the pointer is escaped, it doesn't outlive its referent.
+*int          // owned
+&*int         // borrowed
+(unsafe *int) // unsafe
+#*int         // reference counted
+(weak *int)   // weak
+
+// Owned pointers
 //
-// TODO: How is it passed to C? Options:
-// - automatically cast to (unsafe *T)
-// - must be manually cast to (unsafe *T)
-*int
-
-// A pointer that owns the memory it points to. A piece of memory can have exactly one owner. Just like
-// other nocopy types, performing an assignment moves, rather than copies the pointer. This ensures that
-// the "single owner" invariant holds. Unlike other nocopy types, you don’t always need to consume or escape
-// a nocopy pointer. If the pointer’s underlying type is copyable, you can let
-the pointer reach the
-// end of its scope, at which point the memory it points to will be freed. If the underlying type is nocopy,
-// you need to either escape the pointer or consume the value it points to so that any associated resources (file
-// descriptors, etc.) get cleaned up.
+// Owned pointers own the memory they point to, and are responsible for freeing that memory, and disposing of the
+// underlying object when they go out of scope. A piece of memory can have exactly one owner. Owned pointers are
+// move-only. This ensures that the "single owner" invariant holds. Owned pointers can be passed as arguments to
+// functions or returned. Because they are move-only, doing either transfers ownership of the referenced memory.
 //
-// If you have a (nocopy *Fd) and a close() function that takes an Fd value (which itself is nocopy), then
-// the underlying int is copied from the heap to the stack for the call to close, the stack copy is freed
-// automatically when close() returns, and then the heap copy is freed by the caller when the (nocopy *Fd)
-// goes out of scope.
+// When an owned pointer goes out of scope, the memory it refers to is freed. This is true whether the memory it
+// points to is on the stack or the heap. Owned pointers to nocopy types must be explicitly dropped. Owned pointers
+// to copiable types are dropped implicitly.
 //
-// TODO: clarify double pointers. 
-(nocopy *int)
+// To pass an owned pointer to a C function, you must explicitly cast it to an unsafe pointer. This makes the C
+// function responsible for freeing its memory. This cast is considered a move, and the owned pointer can no longer
+// be refered to after the cast.
+//
+// TODO:
+// - The C function can't know how to free the pointer. What do we do about that?
 
-// A pointer with unknown ownership. The programmer is responsible for managing the memory. Panics
-// on nil dereference, but use-after-free is possible. C pointers are imported as unsafe.
-(unsafe *int)
-     
-(counted *int)  // A refcounted pointer. Alt: (rc *int), (strong *int). Never nil.
-(weak *int)     // A weak pointer. Derived from a refcounted pointer. Becomes nil when the refcounted pointer is freed.
+// Borrowed pointers
+//
+// Borrowed pointers can be created from owned pointers as well as non-pointers, and can't outlive the value they
+// point to. No action is performed on drop, and they never have to be dropped explicitly. Borrowed pointers can be
+// passed to C functions without a cast – they are implicitly converted to unsafe pointers. When passed to C,
+// the programmer is responsible for ensuring that if the pointer is escaped, it doesn't outlive its referent.
 
-// owned and refcounted pointers have shorthands:
-$*int // (nocopy *int)
-#*int // (counted *int)
-
-// For clarity, we'll write pointers out in longhand, but in general, shorthand is preferred.
+// Unsafe pointers
+//
+// Unsafe pointers have unknown ownership. The programmer is responsible for freeing the memory when appropriate.
+// They still panic on nil dereference, but use-after-free is possible. All C pointers are imported as unsafe.
 
 
 // Reference counting
@@ -333,17 +330,17 @@ struct {
 
 // To make a refcounted pointer, use the rc builtin. The type passed to rc is copied into the refcounted struct.
 // If it's a pointer, the pointer is copied. If it's a value, the value is copied.
-func rc(v T) (counted *T)
+func rc(v T) #*T
 
 // You can also supply a cleanup function that will be called when the refcount reaches 0.
-func rc(v T, cleanup func(v T)) (counted *T)
+func rc(v T, cleanup func(v T)) #*T
 
 // Refcounted pointers can own nocopy types, and must provide a cleanup function to consume the
 // owned value.
-func rc(v (nocopy T), deinit func(v (nocopy T))) (counted *T)
+func rc(v (nocopy T), deinit func(v (nocopy T))) #*T
 
 // You can also integrate external reference counted types by providing custom retain and release functions.
-func rc(v T, retain func(v T), release func(v T)) (counted *T)
+func rc(v T, retain func(v T), release func(v T)) #*T
 
 // A custom refcounted pointer has a different layout in memory:
 struct {
@@ -353,41 +350,41 @@ struct {
 }
 
 // You can make a weak reference using the weak builtin
-func weak(p (counted *T)) (weak *T)
+func weak(p #*T) (weak *T)
 
-p := = rc(5) // typeof(p) is (counted *int)
+p := = rc(5) // typeof(p) is #*int
 w := weak(p)  // typeof(w) is (weak *int)
 
-p := rc(fd, close) // typeof(p) is (counted *Fd)
-
-// TODO: non-escapable types, lifetime dependencies, etc.
-type Foo (noescape int)
+p := rc(fd, close) // typeof(p) is #*Fd
 
 
 // Pointer conversions
 
-// A stack value can be borrowed multiple times
+// A variable can be borrowed multiple times.
 var x int
-var p1 *int = &x          // borrowed pointer.
-p2 := &x                  // multiple borrows of a stack allocated value is ok. typeof(p2) is *int
+p1 := &x           // typeof(p1) == &*int
+var p2 &*int = &x  // type can be explicitly specified
 
 // A local variable can be moved into an owned pointer, in which case the original variable is consumed. Escape
 // analysis is performed. If the variable escapes (e.g. is returned) or is consumed by a function, it will be
 // heap allocated.
 var x int
-var p (nocopy *int) = &x // may be stack or heap allocated
-print(x)                 // error: x was moved to p. It doesn't matter that x is copyable.
+var p *int = &x  // may be stack or heap allocated
+print(x)         // error: x was moved to p. It doesn't matter that x is copyable.
 
 // Another syntax for the above
 var x int
-p := (nocopy *int)(&x)
+p := (*int)(&x)
 
-func foo() $*int {
+// TOOD: I don't love that the type of &x can be either &*int or *int depending on its context. But I do want
+// the following examples to work, and they seem to require it.
+
+func foo() *int {
     var x int
     return &x // x is heap allocated
 }
 
-func bar($*int) { ... }
+func bar(*int) { ... }
 func foo() {
     var x int
     bar(&x) // x is heap allocated
@@ -396,24 +393,25 @@ func foo() {
 
 // Taking the address of a literal works the same way. If it escapes, it's heap allocated, otherwise it's
 // stack allocated. Either way, the pointer is owned.
-var p (nocopy *int) = &5 
+var p *int = &5 
 p := &5
-var p *int = &5 // error: you cannot borrow a literal
+
+// You can't borrow a literal value
+var p &*int = &5 // error: you cannot borrow a literal
 
 // To force heap allocation, use make.
-p := make(int) // typeof(p) is (nocopy *int). The int is on the heap.
+p := make(int) // typeof(p) is *int. The int is on the heap.
 
 
 // You can borrow an owned pointer
 var x int
-var p1 (nocopy *int) = &x
-var p2 *int = p1 // implicit borrow. typeof(p2) is *int
-
+p1 := (*int)(&x)
+var p2 &*int = p1
 
 // On the other hand, if a variable has been borrowed, it can't be moved into an owned pointer.
 var x int
-p1 := &x                   // typeof p1 is *int
-var p2 (nocopy *int) = &x  // error: p1 borrows x, so p2 can't own it.
+p1 := &x          // typeof p1 is &*int
+var p2 *int = &x  // error: p1 borrows x, so p2 can't own it.
 
 
 

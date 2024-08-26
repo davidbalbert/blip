@@ -166,7 +166,7 @@ enum {
 enum {
     north string  // "north"
     south         // "south"
-    east = "East" 
+    east = "East"
     west          // "west"
 }
 
@@ -224,60 +224,46 @@ type dir enum {
 // Equivalent to `type byte = uint8` in Go. Allows for implicit conversion.
 alias byte uint8
 
+// Non-copyable types.
+//
+// Non-copyable types are move-only. They must be escaped or explicitly consumed. Non-copyable types are
+// useful for types that manage resources and must be cleaned up later, like a net.Conn that ownes a
+// file descriptor.
 
-
-// Type modifiers
-
-// Move only types. Must be consumed or escaped.
-type Fd (nocopy int)
-
-// Anonymous underlying types don't use parens
-type Fd nocopy struct {
+// If a type embeds a non-copyable type, it is also non-copyable. The type mem.NoCopy is a zero-sized
+// non-copyable type. To make a non-copyable struct, embed mem.NoCopy:
+type Fd struct {
+    mem.NoCopy
     fd int
+}
+
+// Because Fd is non-copyable, Conn is non-copyable too:
+type Conn {
+    fd Fd
     // ...
 }
 
-// Types that contain or have underlying nocopy types must also be nocopy.
-
-// automatically nocopy
-type File Fd
-
-// Must be explicitly declared nocopy
-type File nocopy struct {
-    fd Fd
-}
-
-// Invalid: Fd is already nocopy:
-type File (nocopy Fd)
-
-// Invalid, a nocopy struct must be nocopy:
-type File struct {
-    fd Fd
-}
-
-// You can also use type modifiers in variable declarations.
-var i (nocopy int) = 5
-
-var f (nocopy Fd) // error: Fd is already nocopy
-
-// How are nocopy types printed in an IDE?
-var i (nocopy int) // "(nocopy int)"
-var f Fd           // "Fd (nocopy)"
-
 // An example:
-var x int = 5
-y := x         // x is copied here
-x++
-print(x, y)    // 6, 5
+var a Fd = open(...)
+b := a
+a.Read(...) // error: a was moved to b
+b.Read(...) // ok
 
-var z (nocopy int) = 5
-w := z         // z is moved to w
-z++            // error: z was moved to w
-print(z, w)    // error: z was moved to w
+// Unions are non-copyable if any of their associated values are also non-copyable. You can also make a
+// union non-copyable by including mem.NoCopy as an unamed case:
+union {
+    _ mem.NoCopy
+    s string
+    n int
+}
+
+// Enums are always copyable.
+//
+// In an IDE, a non-copyable type is displayed like this: "Fd (nocopy)"
 
 // Pointers
 
-// There are 5 pointer types: owned, borrowed, unsafe, reference counted, and weak. All pointer types can be nil. 
+// There are 5 pointer types: owned, borrowed, unsafe, reference counted, and weak. All pointer types can be nil.
 // Dereferencing a nil pointer is defined behavior – it panics. All pointers besides unsafe pointers have temporal
 // safety – they prevent use-after-free.
 
@@ -394,7 +380,7 @@ func foo() {
 
 // Taking the address of a literal works the same way. If it escapes, it's heap allocated, otherwise it's
 // stack allocated. Either way, the pointer is owned.
-var p *int = &5 
+var p *int = &5
 p := &5
 
 // You can't borrow a literal value
@@ -524,7 +510,7 @@ func bad(p1, p2 string) (Fd, Fd) | error {
     if err != nil {
         return err
     }
-    
+
     fd2, err := open(p2)
     if err != nil {
         return err // error: fd1 must be consumed
@@ -538,7 +524,7 @@ func good1(p1, p2 string) (Fd, Fd) | error {
     if err != nil {
         return err
     }
-    
+
     fd2, err := open(p2)
     if err != nil {
         close(fd1) // no error: fd1 is consumed

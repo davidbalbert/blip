@@ -48,21 +48,18 @@ var f File; f.Read(nil) // ok
 // The big question is how to handle consuming receivers. First let's redefine File to be nocopy. This isn't strictly necessary to have a consuming
 // Close method – making a owned pointer to a variable will move the variable even if it's copyable. But making File nocopy is what will force us
 // to call f.Close() in a defer.
-type File (nocopy struct{})
-
-// Then we'll declare Close as a consuming method by using a (nocopy *File) receiver.
-func (f (nocopy *File)) Close() error { return nil }
-
-// The question is, how do we define the Closer interface? Here's a start:
-type Closer nocopy interface {
-    Close() error
+type File struct {
+    mem.NoCopy
+    // ...
 }
 
-// But what about defining ReadCloser?
-type ReadCloser interface {
-    Reader
-    Closer
-}
+// Then we'll declare Close as a consuming method by taking the File by value.
+func (f File) Close() error { return nil }
+
+// The above could be an expensive copy. Two options:
+// 1. Methods can't be called from C. This means we have ABI flexability. A method on a non-copyable type can be called with a pointer.
+// 2. We could declare the method on an owned pointer. In this case, f is necessarily heap-allocated.
+func (f $*File) Close() error { return nil }
 
 // Normally something that contains a nocopy thing must also be nocopy. But that's clearly not right here. Read is borrowing, but Close is consuming.
 // So we need syntax to attach it to the method:
@@ -85,5 +82,3 @@ type Closer interface {
 type Closer interface {
     Close() error nocopy
 }
-
-// 

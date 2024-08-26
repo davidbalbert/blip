@@ -38,6 +38,8 @@ C.ulong
 // TODO: What about float16? There are multiple different float16 types in C.
 //
 // Unsized ints (int, uint), must be cast to a specific C type.
+//
+// TODO: how are C structs with bitfields imported?
 
 // Go has complex64 and complex128. Not sure if we want those.
 
@@ -267,8 +269,8 @@ union {
 // Dereferencing a nil pointer is defined behavior – it panics. All pointers besides unsafe pointers have temporal
 // safety – they prevent use-after-free.
 
-*int          // owned
-&*int         // borrowed
+$*int         // owned
+*int          // borrowed
 (unsafe *int) // unsafe
 #*int         // reference counted
 (weak *int)   // weak
@@ -287,9 +289,7 @@ union {
 // To pass an owned pointer to a C function, you must explicitly cast it to an unsafe pointer. This makes the C
 // function responsible for freeing its memory. This cast is considered a move, and the owned pointer can no longer
 // be refered to after the cast.
-//
-// TODO:
-// - The C function can't know how to free the pointer. What do we do about that?
+
 
 // Borrowed pointers
 //
@@ -302,6 +302,7 @@ union {
 //
 // Unsafe pointers have unknown ownership. The programmer is responsible for freeing the memory when appropriate.
 // They still panic on nil dereference, but use-after-free is possible. All C pointers are imported as unsafe.
+// Alt: (raw *T), (unowned *T).
 
 
 // Reference counting
@@ -314,25 +315,33 @@ struct {
     value T
 }
 
-// To make a refcounted pointer, use the rc builtin. The type passed to rc is copied into the refcounted struct.
-// If it's a pointer, the pointer is copied. If it's a value, the value is copied.
+// To make a refcounted pointer, use the rc builtin. The refcounted struct is allocated on the heap and the
+// bytes of v are copied in. In this form, T must be copyable.
 func rc(v T) #*T
 
-// You can also supply a cleanup function that will be called when the refcount reaches 0.
-func rc(v T, cleanup func(v T)) #*T
+// An owned pointer can also be passed to rc. This consumes the owned pointer. Like the above, T must be copyable.
+//
+// TODO: because the owned pointer is consumed by rc, its data is heap-allocated by definition. Is it possible
+// to do some sort of optimization where the data doesn't have to be copied? One way to do this would be to leave
+// room for refcount and cleanup at the start of every heap allocation. How expensive would this be?
+func rc(p $*T) #*T
 
-// Refcounted pointers can own nocopy types, and must provide a cleanup function to consume the
-// owned value.
-func rc(v (nocopy T), deinit func(v (nocopy T))) #*T
+// You can also supply a cleanup function that will be called when the refcount reaches 0. In this form, T may
+// be non-copyable.
+//
+// TODO: should cleanup in the second form take $*T instead of T?
+func rc(v T, cleanup func(v T)) #*T
+func rc(p $*T, cleanup func(v T)) #*T
 
 // You can also integrate external reference counted types by providing custom retain and release functions.
-func rc(v T, retain func(v T), release func(v T)) #*T
+func rc(p $*T, retain func(v *T), release func(v *T)) #*T
+func rc(p (unsafe *T), retain func(v *T), release func(v *T)) #*T
 
 // A custom refcounted pointer has a different layout in memory:
 struct {
     retain func(T)
     release func(T)
-    value T
+    value (unsafe *T)
 }
 
 // You can make a weak reference using the weak builtin
@@ -348,30 +357,30 @@ p := rc(fd, close) // typeof(p) is #*Fd
 
 // A variable can be borrowed multiple times.
 var x int
-p1 := &x           // typeof(p1) == &*int
-var p2 &*int = &x  // type can be explicitly specified
+p1 := &x           // typeof(p1) == *int
+var p2 *int = &x  // type can be explicitly specified
 
 // A local variable can be moved into an owned pointer, in which case the original variable is consumed. Escape
 // analysis is performed. If the variable escapes (e.g. is returned) or is consumed by a function, it will be
 // heap allocated.
 var x int
-var p *int = &x  // may be stack or heap allocated
+var p $*int = &x  // may be stack or heap allocated
 print(x)         // error: x was moved to p. It doesn't matter that x is copyable.
 
 // Another syntax for the above
 var x int
 p := (*int)(&x)
 
-// TOOD: I don't love that the type of &x can be either &*int or *int depending on its context. But I do want
+// TOOD: I don't love that the type of &x can be either $*int or *int depending on its context. But I do want
 // the following examples to work, and they seem to require it. This could be solved by having another operator
 // in addition to '&'.
 
-func foo() *int {
+func foo() $*int {
     var x int
     return &x // x is heap allocated
 }
 
-func bar(*int) { ... }
+func bar($*int) { ... }
 func foo() {
     var x int
     bar(&x) // x is heap allocated
@@ -380,25 +389,25 @@ func foo() {
 
 // Taking the address of a literal works the same way. If it escapes, it's heap allocated, otherwise it's
 // stack allocated. Either way, the pointer is owned.
-var p *int = &5
+var p $*int = &5
 p := &5
 
 // You can't borrow a literal value
-var p &*int = &5 // error: you cannot borrow a literal
+var p *int = &5 // error: you cannot borrow a literal
 
 // To force heap allocation, use make.
-p := make(int) // typeof(p) is *int. The int is on the heap.
+p := make(int) // typeof(p) is $*int. The int is on the heap.
 
 
-// You can borrow an owned pointer
+// You can borrow an owned pointer.
 var x int
-p1 := (*int)(&x)
-var p2 &*int = p1
+p1 := ($*int)(&x)
+var p2 *int = p1
 
 // On the other hand, if a variable has been borrowed, it can't be moved into an owned pointer.
 var x int
-p1 := &x          // typeof p1 is &*int
-var p2 *int = &x  // error: p1 borrows x, so p2 can't own it.
+p1 := &x           // typeof p1 is *int
+var p2 $*int = &x  // error: p1 borrows x, so p2 can't own it.
 
 
 

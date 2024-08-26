@@ -231,7 +231,7 @@ alias byte uint8
 // file descriptor.
 
 // If a type embeds a non-copyable type, it is also non-copyable. The type mem.NoCopy is a zero-sized
-// non-copyable type. To make a non-copyable struct, embed mem.NoCopy:
+// non-copyable type. C.f. structs.HostLayout in Go. To make a non-copyable struct, embed mem.NoCopy:
 type Fd struct {
     mem.NoCopy
     fd int

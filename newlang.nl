@@ -334,8 +334,12 @@ func rc(v T, cleanup func(v T)) #*T
 func rc(p $*T, cleanup func(v T)) #*T
 
 // You can also integrate external reference counted types by providing custom retain and release functions.
-func rc(p $*T, retain func(v *T), release func(v *T)) #*T
-func rc(p (unsafe *T), retain func(v *T), release func(v *T)) #*T
+//
+// TODO:
+// 1. Should there be a version of this for owned pointers? What should the pointer type in retain and release be?
+// 2. What about typedefs like CFArrayRef? This could be a struct where that embeds the pointer. We need to support
+//    that too.
+func rc(p (unsafe *T), retain func(p (unsafe *T)), release func(p (unsafe *T)) #*T
 
 // A custom refcounted pointer has a different layout in memory:
 struct {

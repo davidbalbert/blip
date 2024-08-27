@@ -1,11 +1,11 @@
 // allocating
 
 type Allocator interface {
-    Allocate(size uint) *void | error
+    Allocate(size uint) $*void | error
 }
 
 type Freer interface {
-    Free(ptr *void)
+    Free(ptr $*void)
 }
 
 type AllocateFreer interface {

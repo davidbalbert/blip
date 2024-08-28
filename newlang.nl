@@ -420,11 +420,27 @@ var p2 $*int = &x  // error: p1 borrows x, so p2 can't own it.
 
 
 
-
-
-
-
-
+// TODO: Iterators
+//
+// For custom data structures, I want Go-style coroutine-based internal-iteration by default. But we're going
+// to be able to convert those into external iterators. The question is how to make sure the underlying data
+// structure is retained by the iterator. The answer is that the iterator should borrow the data structure
+// and that should keep it alive. It's a good test for the lifetime system. It has to be at least that expressive.
+//
+// Should borrows be non-nil or nilable? Thoughts:
+//
+// - In Go, you can call a method on a nil pointer. It's sometimes useful, but how useful?
+// - If we want to have a data structure that borrows another one (which we do), that field will be a
+//   borrowed pointer. If we want to have zero-value initialization by default (which we do), that field will
+//   have to be able to be nil. That's the zero value for any pointer type.
+//
+// So what does this mean for lifetimes? An owned pointer can be nil. If you borrow it, the borrow will be
+// nil too.
+//
+// Owned pointers are freed when they go out of scope. Their memory must also be freed when set to nil or overwritten
+// with another value. This means it has to be an error to make an owned pointer point to a new location or nil while
+// it is being borrowed. Ditto for a borrowed pointer – we can't nil out a borrowed pointer or update the location it.
+// points to. But we can update its fields.
 
 // Functions
 

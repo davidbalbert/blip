@@ -420,7 +420,7 @@ var p2 $*int = &x  // error: p1 borrows x, so p2 can't own it.
 
 
 
-// TODO: Iterators
+// TODO: Iterators and loops
 //
 // For custom data structures, I want Go-style coroutine-based internal-iteration by default. But we're going
 // to be able to convert those into external iterators. The question is how to make sure the underlying data
@@ -437,10 +437,60 @@ var p2 $*int = &x  // error: p1 borrows x, so p2 can't own it.
 // So what does this mean for lifetimes? An owned pointer can be nil. If you borrow it, the borrow will be
 // nil too.
 //
+// One problem with the above: what's the best way to make a doubly linked list? One option: use #*List for next
+// and (weak *List) for prev. That's what Swift would do (modulo whatever's going on in indirect enums). Could you
+// have
+//
 // Owned pointers are freed when they go out of scope. Their memory must also be freed when set to nil or overwritten
 // with another value. This means it has to be an error to make an owned pointer point to a new location or nil while
 // it is being borrowed. Ditto for a borrowed pointer – we can't nil out a borrowed pointer or update the location it.
 // points to. But we can update its fields.
+//
+
+// Is it possible to mutate while iterating? Here's a stardard, immutable for loop:
+for n := range []int{10, 20, 30} {
+    // n is the value
+}
+
+for i, n := range []int{10, 20, 30} {
+    // i is the index, n is the value
+}
+
+// Ways to mutate in Go
+nums := []int{10, 20, 30}
+for i, _ := range nums {
+    if nums[i] == 20 {
+        nums[i] == 50
+    }
+}
+
+// If we could borrow the value, then we wouldn't have to use index above. That on its own doesn't seem valuable enough,
+// but it would be valuable on a custom data structure, e.g. a linked list.
+//
+// Maybe something like this? Is this useful enough?
+nums := []int{10, 20, 30}
+for &n := range nums {
+    if *n == 20 {
+        *n = 50
+    }
+}
+
+// For custom data structures using range-over-func, it might be as simple as having the yield signatures be
+func() bool
+func(*V) bool
+func(K, *V) bool
+
+// If you define a yield function for one of the pointer variants, it can still work with the loop variable `n` instead of `&n`.
+// It would just be an implicit dereference.
+//
+// I'm not sure if there are lifetime issues here. What if the values have borrows in them?
+//
+// This doesn't support inserting or removing. That's too much of a lift. Use a data structure specific Cursor (or maybe Iterator)
+// and custom methods.
+//
+// All that said, maybe this is too hard and too much. Go doesn't have mutable iterators, and after all, you can do everything
+// with functions.
+
 
 // Functions
 

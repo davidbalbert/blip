@@ -289,7 +289,9 @@ $*int         // owned
 // To pass an owned pointer to a C function, you must explicitly cast it to an unsafe pointer. This makes the C
 // function responsible for freeing its memory. This cast is considered a move, and the owned pointer can no longer
 // be refered to after the cast.
-
+//
+// Owned pointers can be set to nil, or to a new address. If the pointer was non-nil previously, the memory it pointed
+// to is freed. You can not set an owned pointer to nil or a new address if it is being borrowed.
 
 // Borrowed pointers
 //
@@ -297,6 +299,8 @@ $*int         // owned
 // point to. No action is performed on drop, and they never have to be dropped explicitly. Borrowed pointers can be
 // passed to C functions without a cast – they are implicitly converted to unsafe pointers. When passed to C,
 // the programmer is responsible for ensuring that if the pointer is escaped, it doesn't outlive its referent.
+//
+// Borrwed pointers can never have their address changed.
 
 // Unsafe pointers
 //

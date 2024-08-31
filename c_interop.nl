@@ -16,7 +16,11 @@
 //      the "Create Rule" from Core Foundation where all values returned by functions that have "Create"
 //      or "Copy" in the name indicate that you own the returned object (it has a +1 refcount) and must
 //      release it with CFRelease.
-//    - The ability to annotate C types (e.g. the int returned by open(2) is no-copy).
+//    - The ability to annotate C types (e.g. the int returned by open(2) is no-copy). This might be infeasable:
+//      it would probably require getting rid of mem.NoCopy (which is easy), but file descriptors can be copied –
+//      e.g. write(2) does not consume an fd. Perhaps we should not attempt this. The user is always responsible
+//      for making sure resources are deallocated. Otherwise, we'd have to allow some functions to borrow
+//      non-pointer values.
 // 6. Make C safer.
 //    - Nil checks even for pointers returned from C (easy).
 //    - Bounds checks or alias warnings even for pointers passed to C (hard).

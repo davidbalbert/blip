@@ -275,7 +275,8 @@ $*int       // owned
 #*int       // reference counted
 (weak *int) // weak
 
-// Other possible pointer types
+// Other possible spellings and pointer types
+~*int // weak
 %*int // Non-null, if we add it. Would this be borrowed or owned? Would we need both? Can we get away without this?
 
 // Owned pointers

@@ -275,6 +275,10 @@ $*int         // owned
 #*int         // reference counted
 (weak *int)   // weak
 
+// Other possible spellings and pointer types
+!*int // unsafe
+%*int // non-null, if we add it
+
 // Owned pointers
 //
 // Owned pointers own the memory they point to, and are responsible for freeing that memory, and disposing of the

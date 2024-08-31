@@ -269,14 +269,13 @@ union {
 // Dereferencing a nil pointer is defined behavior – it panics. All pointers besides unsafe pointers have temporal
 // safety – they prevent use-after-free.
 
-$*int         // owned
-*int          // borrowed
-(unsafe *int) // unsafe
-#*int         // reference counted
-(weak *int)   // weak
+$*int       // owned
+*int        // borrowed
+!*int       // unsafe
+#*int       // reference counted
+(weak *int) // weak
 
-// Other possible spellings and pointer types
-!*int // unsafe
+// Other possible pointer types
 %*int // Non-null, if we add it. Would this be borrowed or owned? Would we need both? Can we get away without this?
 
 // Owned pointers
@@ -341,27 +340,30 @@ func rc(p $*T) #*T
 func rc(v T, cleanup func(v T)) #*T
 func rc(p $*T, cleanup func(v T)) #*T
 
-// TODO: converting back and forth between #*T and (unsafe *T). You need to be able to convert to a (unsafe *T)
-// both with and without retaining the value. Ditto for converting from an (unsafe *T) to a #*T.
+// TODO: converting back and forth between #*T and !*T. You need to be able to convert to a !*T
+// both with and without retaining the value. Ditto for converting from an !*T to a #*T.
 
 // You can also integrate external reference counted types by providing custom retain and release functions.
 //
-// IsRetained should be true if the (unsafe *T) is given to you with a +1 refcount.
+// IsRetained should be true if the !*T is given to you with a +1 refcount.
 //
 // TODO:
 // 1. Should there be a version of this for owned pointers? What should the pointer type in retain and release be?
 // 2. What about typedefs like CFArrayRef? This could be a struct where that embeds the pointer. We need to support
 //    that too.
-func rc(p (unsafe *T), retain func(p (unsafe *T)), release func(p (unsafe *T), isRetained bool) #*T
+func rc(p !*T, retain func(p !*T), release func(p !*T), isRetained bool) #*T
 
 // A custom refcounted pointer has a different layout in memory:
 struct {
     retain func(T)
     release func(T)
-    value (unsafe *T)
+    value !*T
 }
 
 // You can make a weak reference using the weak builtin
+//
+// TODO: how to make weak references to custom refcounted pointers? We need to know when the refcount reaches 0, so we
+// can nil out the weak pointers.
 func weak(p #*T) (weak *T)
 
 p := = rc(5) // typeof(p) is #*int

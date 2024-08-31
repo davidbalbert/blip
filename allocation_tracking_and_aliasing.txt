@@ -1,0 +1,33 @@
+Goal:
+- bounds check all pointer accesses, not just slices
+- runtime traps for alias violations
+
+- if we disallow pointer arithmetic, we should be able to do this without the below metadata, with the exception of unsafe pointers and integer pointer conversions
+- that said, slices can alias
+- pointers to fields inside a struct can alias the struct.
+
+How to do this?
+- Track all allocations including nested allocations (e.g. malloc inside mmap)
+- add metadata at the beginning of each allocation (or elsewhere)
+- functions that take any pointer type take a second argument describing that pointer’s extent
+- exported C functions wrap the Newlang function and pass in nil (or another sentinel value) that signals to Newlang that it can’t perform a bounds check
+
+Questions:
+- how to deal with custom allocators? If we have a slab allocator, the whole point is to have a bunch of known-sized objects right next to each other. Make() could still ask the allocator for a bit more space, but that might mess up alignment and give people less control of their memory.
+    - Maybe instead keep allocation metadata somewhere else.
+- How to deal with integer/pointer conversions (see paper below)?
+- How to deal with taking a pointer into an array allocation? Maybe same as slab allocation?
+- How to deal with A pointer into a field of a struct? Is it valid to increment it passed the field? Is that necessary?
+- If we’re storing metadata for our own unsafe pointers, how do we know the difference between those and ones that come from C? Libcrunch?
+
+Which pointer operations are actually necessary?
+
+Ideas:
+- All memory that’s mapped in by the loader (text, globals, etc) have known extents loaded into memory.
+- have a construct for specifying device-mapped memory. I.e. hardcoding an address for a memory-mapped register bank.
+
+
+
+Resources:
+- https://www.cis.upenn.edu/~stevez/papers/KHM+15.pdf
+- https://www.ralfj.de/blog/2018/07/24/pointers-and-bytes.html

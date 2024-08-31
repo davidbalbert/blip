@@ -277,7 +277,7 @@ $*int         // owned
 
 // Other possible spellings and pointer types
 !*int // unsafe
-%*int // non-null, if we add it
+%*int // Non-null, if we add it. Would this be borrowed or owned? Would we need both? Can we get away without this?
 
 // Owned pointers
 //

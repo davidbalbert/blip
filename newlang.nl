@@ -497,6 +497,25 @@ p := rc(5)
 callAfter(printint, unsafe.Retain(p), 1.0)
 
 
+// Receiving pointers from C functions.
+
+// Consider the following:
+//
+// struct Node;
+// char *get_name(struct Node *node);
+func get_name(node !*C.Node) !*C.char
+
+// Node owns its name. In other words, the !*C.char returned by get_name is a borrow by convention. Callers
+// of get_name must ensure that the name doesn't outlive the node. While it's possible to use the unsafe
+// pointer directly, you can also convert it to a borrow by specifying the borrow's lifetime.
+
+n := &C.Node{}           // typeof(n) is $*C.Node
+s1 := get_name(n.!)      // typeof(s1) is !*C.char
+s2 := get_name(n.!) in n // typeof(s2) is &*C.char. Alt: .(in n) or in! n.
+
+
+
+
 // TODO: Iterators and loops
 //
 // For custom data structures, I want Go-style coroutine-based internal-iteration by default. But we're going

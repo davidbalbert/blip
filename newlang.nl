@@ -490,6 +490,9 @@ func printint(p !*void) {
     unsafe.Release(ip)
 }
 
+p := rc(5)
+callAfter(printint, unsafe.Retain(p), 1.0)
+
 
 // TODO: Iterators and loops
 //

@@ -310,7 +310,7 @@ $*int       // owned
 //
 // Unsafe pointers have unknown ownership. The programmer is responsible for freeing the memory when appropriate.
 // They still panic on nil dereference, but use-after-free is possible. All C pointers are imported as unsafe.
-// Alt: (raw *T), (unowned *T).
+// Alt: (unsafe *T), (raw *T), (unowned *T).
 
 
 // Reference counting
@@ -343,13 +343,16 @@ func rc(p !*T, retain func(p !*T), release func(p !*T), isRetained bool) #*T
 struct {
     retain func(T)
     release func(T)
-    value !*T
+    value T
 }
 
 // You can make a weak reference using the weak builtin
 //
-// TODO: how to make weak references to custom refcounted pointers? We need to know when the refcount reaches 0, so we
-// can nil out the weak pointers.
+// TODO: how to make weak references to custom refcounted pointers? We need to know when the refcount reaches 0
+// so we can nil out the weak pointers. One option: weak pointers could be nil'd out as soon as the number of
+// #*T pointers (i.e. the number of strong references from Newlang code) drops to 0. This is a bit ugly though:
+// if some C code is holding a strong reference, the weak pointer will be nil'd out even though the object is
+// still alive.
 func weak(p #*T) (weak *T)
 
 p := = rc(5) // typeof(p) is #*int

@@ -513,7 +513,38 @@ n := &C.Node{}           // typeof(n) is $*C.Node
 s1 := get_name(n.!)      // typeof(s1) is !*C.char
 s2 := get_name(n.!) in n // typeof(s2) is &*C.char. Alt: .(in n) or in! n.
 
+// You can't bind the lifetime of a borrow to an unsafe pointer. We don't know how long it will live:
+n := C.make_node()     // typeof(n) is !*C.Node
+s1 := get_name(n)      // typeof(s1) is !*C.char
+s2 := get_name(n) in n // error: cannot bind lifetime of borrow to an unsafe pointer
 
+
+// Consider the following:
+//
+// char *copy_name(struct Node *node);
+func copy_name(node !*C.Node) !*C.char
+
+// The semantics of copy_name is that the caller owns the returned string and is responsible for freeing it.
+// You can convert the unsafe pointer to an owned pointer using unsafe.Claim:
+func Claim(p !*T, alloc mem.Allocator) $*T
+
+n := &C.Node{}
+s1 := copy_name(n.!)                   // typeof(s1) is !*C.char
+s2 := unsafe.Claim(s1, mem.CAllocator) // typeof(s2) is $*C.char.
+
+// mem.CAllocator is a built-in allocator that uses C.malloc and C.free.
+//
+// TODO: It's a bit wierd for mem to depend on C, but I can't think of anything better. Some options:
+// C.Allocator is probably the clearest, but I think it's bad to have a type in the C that's not actually
+// a C type. unsafe.CAllocator might also work. It goes with unsafe.Claim, but nothing about it is
+// actually unsafe.
+
+// You can also free the string manually:
+n := &C.Node{}
+s := copy_name(n.!) // typeof(s1) is !*C.char.
+defer C.free(s)
+
+// If you don't do this, s will leak.
 
 
 // TODO: Iterators and loops

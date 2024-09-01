@@ -324,19 +324,14 @@ struct {
 }
 
 // To make a refcounted pointer, use the rc builtin. The refcounted struct is allocated on the heap and the
-// bytes of v are copied in. In this form, T must be copyable.
+// bytes of v are copied in. You can also pass in an owned pointer. In these forms, T must be copyable.
 func rc(v T) #*T
-
-// An owned pointer can also be passed to rc. This consumes the owned pointer. Like the above, T must be copyable.
 func rc(p $*T) #*T
 
 // You can also supply a cleanup function that will be called when the refcount reaches 0. In this form, T may
 // be non-copyable.
 func rc(v T, cleanup func(v T)) #*T
 func rc(p $*T, cleanup func(v $*T)) #*T
-
-// TODO: converting back and forth between #*T and !*T. You need to be able to convert to a !*T
-// both with and without retaining the value. Ditto for converting from an !*T to a #*T.
 
 // You can also integrate external reference counted types by providing custom retain and release functions.
 //
@@ -375,7 +370,7 @@ var p2 *int = &x  // type can be explicitly specified
 // heap allocated.
 var x int
 var p $*int = &x  // may be stack or heap allocated
-print(x)         // error: x was moved to p. It doesn't matter that x is copyable.
+print(x)          // error: x was moved to p. It doesn't matter that x is copyable.
 
 // Another syntax for the above
 var x int
@@ -419,6 +414,81 @@ var x int
 p1 := &x           // typeof p1 is *int
 var p2 $*int = &x  // error: p1 borrows x, so p2 can't own it.
 
+
+// Passing pointers to C functions.
+
+// void inc(int *p);
+func inc(p !*int)
+
+// To call inc with a borrowed pointer, do the following.
+var x int
+p := &x    // typeof(p) is *int
+inc(p.!)
+
+// This also works with refcounted pointers. The reference count is not incremented.
+p := rc(5) // typeof(p) is #*int
+inc(p.!)
+
+// And weak pointers:
+p := rc(5)
+w := weak(p)
+inc(w.!)
+
+// In all of these cases, you must ensure that the unsafe pointer doesn't outlive the value it points to. The
+// easiest way to do this is to make sure inc doesn't escape the pointer. If call a function that does escape
+// the pointer, you must ensure that the pointer's referent lives at least as long as the unsafe pointer does.
+
+// Owned pointers can also be passed to C functions, but the conversion causes ownership to be transferred. Unless
+// you free the memory later, it will be leaked. Freeing the memory can be tricky – it depends on what allocator
+// allocated the memory.
+p := &5
+inc(p.!) // $*int -> !*inc
+// p has leaked
+
+// An unsafe pointer of any type can be used where an unsafe void pointer is expected.
+// void printptr(void *p);
+func printptr(p !*void)
+
+var x int
+p := (&x).!      // typeof(p) is !*int
+printptr(p)      // !*int -> !*void
+printptr((&x).!) // *int -> !*void
+
+
+// !*void can be converted to a typed unsafe pointer using p.(!*T).
+//
+// void call(void (*f)(void*), void *arg);
+func call(f func(!*void), arg !*void)
+
+func printint(p !*void) {
+    // TODO: can we make this panic if p doesn't point to an int?
+    // See liballocs: https://github.com/stephenrkell/liballocs
+    ip := p.(!*int) // !*void -> !*int
+    fmt.Println(*ip)
+}
+
+x := 5
+call(printint, (&x).!) // *int -> !*void
+
+
+// It is possible to safely escape a reference counted pointer using the unsafe.Retain and unsafe.Release
+// builtins. The former converts its argument to an unsafe pointer and increments the reference count, the
+// latter does the opposite conversion with a decrement.
+//
+// TODO: could Release be made to panic if p isn't reference counted?
+func Retain(p #*T) !*T
+func Release(p !*T) #*T
+
+// This example assumes the presence of a single threaded event loop.
+//
+// void callAfter(void (*f)(void*), void *arg, double seconds);
+func callAfter(f func(!*void), arg !*void, seconds float64)
+
+func printint(p !*void) {
+    ip := p.(!*int)
+    fmt.Println(*ip)
+    unsafe.Release(ip)
+}
 
 
 // TODO: Iterators and loops

@@ -328,30 +328,20 @@ struct {
 func rc(v T) #*T
 
 // An owned pointer can also be passed to rc. This consumes the owned pointer. Like the above, T must be copyable.
-//
-// TODO: because the owned pointer is consumed by rc, its data is heap-allocated by definition. Is it possible
-// to do some sort of optimization where the data doesn't have to be copied? One way to do this would be to leave
-// room for refcount and cleanup at the start of every heap allocation. How expensive would this be?
 func rc(p $*T) #*T
 
 // You can also supply a cleanup function that will be called when the refcount reaches 0. In this form, T may
 // be non-copyable.
-//
-// TODO: should cleanup in the second form take $*T instead of T?
 func rc(v T, cleanup func(v T)) #*T
-func rc(p $*T, cleanup func(v T)) #*T
+func rc(p $*T, cleanup func(v $*T)) #*T
 
 // TODO: converting back and forth between #*T and !*T. You need to be able to convert to a !*T
 // both with and without retaining the value. Ditto for converting from an !*T to a #*T.
 
 // You can also integrate external reference counted types by providing custom retain and release functions.
 //
-// IsRetained should be true if the !*T is given to you with a +1 refcount.
-//
-// TODO:
-// 1. Should there be a version of this for owned pointers? What should the pointer type in retain and release be?
-// 2. What about typedefs like CFArrayRef? This could be a struct where that embeds the pointer. We need to support
-//    that too.
+// IsRetained should be true if the value or pointer is given to you with a +1 refcount.
+func rc(v T, retain func(v T), release func(v T), isRetained bool) #*T
 func rc(p !*T, retain func(p !*T), release func(p !*T), isRetained bool) #*T
 
 // A custom refcounted pointer has a different layout in memory:

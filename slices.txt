@@ -1,0 +1,27 @@
+In Go, multiple slices can refer to the same underlying memory. This is handled by garbage collection. We don't have GC, so we need to do something else. Some options:
+
+1. Slices borrow their underlying storage, which means they can't outlive it. This is what Rust does. It also means that there has to be a pre-declared underlying storage somewhere. I.e., if you want a slice of ints, there has to be an array of ints somewhere that the slice is borrowing.
+2. Slices have reference-counted underlying storage. This is like Swift. It means you can just create an []int without having some underlying storage. It also allows for mutable value semantics (e.g. copy-on-write arrays or strings) if we want it.
+3. A slice is really more like a growable array, or vector. It owns its storage, and if you want to borrow a slice, you make a borrowed pointer, e.g. *[]T.
+
+Some questions:
+
+If slices borrow their storage, can we introduce some easily understandable magic that makes declaring the underlying storage unnecessary? We probably can for stack allocated things:
+
+b := []byte{1, 2, 3} // creates an unnamed [3]byte on the stack that b borrows. The [3]byte is deallocated when b goes out of scope.
+
+Does option 1 imply that we'd need a separate string and substring type? Strings would own their storage and substrings (string slices) would borrow them? I really don't want string to have both string and substring.
+
+In general, reference counting is the obvious replacement for garbage collection. But does reference counting work in a low level context without heap allocations? Perhaps you can declare that some refcounted guts exist in static memory, and then have a reference counted pointer to those. I'm not sure.
+
+
+Slices are valuable because we can have multiple different views into some underlying data. Where is that data stored? In Go, I believe the answer is always the heap, though maybe there are optimizations for non-escaping slices that are declared on the stack.
+
+Appending to a slice will always require heap allocation, because the underlying storage may not be big enough. So perhaps append() is disabled in noalloc mode.*
+
+
+*This brings up a related question – noalloc mode will be great for a micro-controller, but we want to be able to write an OS. That requires two things:
+
+1. You can't allocate on boot, but once you've set up the default allocator, then you can. How might we do this?
+    - if you haven't set up the default allocator yet, panic gets called.
+2. If you have a swap system, allocation might block on disk access. We'd need to account for this. How much complexity does this add?

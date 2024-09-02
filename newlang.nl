@@ -19,8 +19,6 @@ float64
 
 uintptr
 
-rune (int32)
-
 // C types
 C.char
 C.schar
@@ -50,17 +48,23 @@ C.ulong
 // A slice. E.g. []int. Length and capacity are stored in the slice.
 // TODO:
 // - Can slices be nil, like Go?
-// - Should slices be mutable? I think so.
 []T
 
 // A map. E.g. map[string]int. Alt: dict[string]int.
 map[K]V
 
-// A string. No assumed encoding. Source files are always UTF-8, and thus string literals are as well. Strings
-// are null-terminated, and can be bridged to C without copying. Like slices, strings store their length and
-// capacity, which can be queried in constant time.
+// A single Unicode code point.
+rune (int32)
+
+// A string is an sequence of arbitrary bytes with no assumed encoding. Source files are always UTF-8, and
+// thus string literals are as well. Like slices, strings store their length in bytes, which can be queried
+// in constant time. Strings are null-terminated, and can be bridged to C without copying. Strings may
+// contain user-inserted null bytes. User-inserted null bytes are included in the length, but the null
+// terminator is not. If a string with a user-inserted null byte at index i is passed to a C function, the=
+// C function will see a string of length i.
+//
 // TODO:
-// - What should this be? In Go it's an immutable []byte. If you iterate you get runes.
+// - See slices.txt for a bunch of open questions about slices and strings.
 // - How to deal with extended grapheme clusters?
 string
 

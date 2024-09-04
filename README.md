@@ -13,6 +13,9 @@ The most complete sketch is in [newlang.nl](https://github.com/davidbalbert/newl
 
 ## Details and stray thoughts
 
+Name idea: people sometimes use chainmale gloves when cutting things on a mandolin. It lets you use the sharp tool more safely. This is what I want for the language. Maybe there's a name that evokes that.
+
+
 Rust and Swift are C++ replacements – too big. Zig is a C replacement, but it doesn't have any memory safety. Go is lots of fun, but GC makes it a bit too high level. CSP is great.
 
 Basically, I want to use Go for lower level things, but it's not quite suited to some of those.
@@ -42,11 +45,11 @@ Notes:
 - Smaller than Rust
 - Fun like Go
 	- Fast compile times
-	- CSP 
-	- Mostly Imperative 
+	- CSP
+	- Mostly Imperative
 - CSP
 	- No growable stacks
-	- Statically allocate able stacks if necessary 
+	- Statically allocate able stacks if necessary
 	- Set stack size (global? per stack?)
 	- Interrupt handler??
 - No GC
@@ -64,14 +67,14 @@ Notes:
 - Zero values
 - One method interfaces and structural conformance
 - Checked pointer dereference
-- Flavors - with upgrading 
+- Flavors - with upgrading
 	- noalloc (only stack + global)
 	- nomultiplex
 	- full
 - Special casing ok
 	- Fixed-size arrays
 	- Slices
-	- Dictionaries 
+	- Dictionaries
 - Easy cross compile
 	- All archs
 	- Easy C interop (like `zig cc`)
@@ -84,7 +87,7 @@ Notes:
 - Structs
     - Default C layout? Or do you have to opt in?
 - Iteration
-    - co-routine based iterators ("interior iteration") 
+    - co-routine based iterators ("interior iteration")
     - Like Ruby: be able to turn a co-routine based iterator into an Enumerable/Iterator ("exterior iteration").
     - What about going back and forth? A cursor? Something else?
     - Swift-like slicing of arbitrary data structures?

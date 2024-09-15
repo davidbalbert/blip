@@ -20,3 +20,22 @@ x, err := make(T, mem.DefaultAllocator)
 // TODO: there's a problem with this interface. There aren't a ton of reasons to use custom allocators. But one of them
 // is a slab allocator. But slab allocators, by definition, can only allocate a specific size, so this interface doesn't
 // make any sense. Figure out what to do about this.
+
+
+// TODO: Nested ownership. Consider a slab allocator (for which we've solved the above problem):
+
+type SlabAllocator struct {
+    elsz uint
+    data $*T
+}
+
+func (a *SlabAllocator) Allocate() $*T {
+    // ...
+}
+
+let a = &SlabAllocator{elsz: 8} // typeof(sa) is $*SlabAllocator
+let p = make(T, a)              // typeof(p) is $*T
+
+// p is an owned pointer into a region of memory that's owned by a. This needs to be ok. Memory allocation is
+// hierarchical, and as long as each owned pointer is freed by the same allocator that allocated it, everything
+// should be fine. But I'm sure there are gnarley bits here.

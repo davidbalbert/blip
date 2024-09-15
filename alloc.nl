@@ -39,3 +39,18 @@ let p = make(T, a)              // typeof(p) is $*T
 // p is an owned pointer into a region of memory that's owned by a. This needs to be ok. Memory allocation is
 // hierarchical, and as long as each owned pointer is freed by the same allocator that allocated it, everything
 // should be fine. But I'm sure there are gnarley bits here.
+
+
+// A thought: SlabAllocator owns a resource. It's a region of memory. For most things that own a resource we use
+// mem.NoCopy and then explicitly clean them up, but so far, memory is a special case. Freeing of owned pointers
+// (and values) is automatic.
+//
+// Is a struct that contains an owned pointer inherently move-only? I think it is. Is it inherently mem.NoCopy?
+// not right now, because we don't need to explicitly clean it up.
+//
+// Here's the tension: memory is a resource just like a file descriptor. So a struct that owns some memory
+// needs to be unique so the memory never has more than one owner. Which makes it look a lot like mem.NoCopy.
+// But it's not quite mem.NoCopy because we don't want to have to explicitly free each owned pointer. It should
+// just know how to do it.
+//
+// This isn't bad necessarily. It's just a bump in the carpet – not totally smooth. It bears extra scruitiny.

@@ -92,6 +92,29 @@ struct {
     int
 }
 
+// TODO: We'd like to have a way to represent header + data in a struct. In C, you'd use a flexible,
+// array member, e.g.
+//
+// struct string {
+//     len int;
+//     char data[];
+// }
+//
+// We could do the same in Newlang (here's a possible spelling), but I wonder if there might be a better
+// way to express things.
+//
+type buf struct {
+    len int
+    data ...byte // Alt: `data byte...`
+}
+
+// I'm not sure if you can put this the stack or not. While the size can't be known by looking at the struct
+// definition itself, as long as the size of data doesn't change, its equivalent to alloca(3).
+//
+// Heap allocating this is easy – the size (sizeof(int) + len) is dynamically stored in the heap, and dropping
+// is therefore dynamic as well.
+
+
 // Tagged unions. Basically enum with associated values.
 union {
     one int

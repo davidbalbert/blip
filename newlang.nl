@@ -15,7 +15,7 @@ float16
 float32
 float64
 
-// Width of a data register. E.g.
+// Width of a data register.
 int
 uint
 

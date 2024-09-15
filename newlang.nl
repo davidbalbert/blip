@@ -1,12 +1,10 @@
 // Primitive types
-int
 int8
 int16
 int32
 int64
 int128
 
-uint
 uint8 (byte)
 uint16
 uint32
@@ -17,6 +15,11 @@ float16
 float32
 float64
 
+// Width of a data register. E.g.
+int
+uint
+
+// Width of a pointer
 uintptr
 
 // C types

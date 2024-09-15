@@ -270,6 +270,31 @@ union {
 //
 // In an IDE, a non-copyable type is displayed like this: "Fd (nocopy)"
 
+
+// Math
+
+// Arethmetic operators (+, -, *, /, %, etc.) are defined to trap on overflow (TODO: which ones?).
+// .+, .-, and .* (more?) wrap on overflow.
+//
+// TODO: what about a way to explicitly check the overflow flag, e.g. math.Overflow()? If we do that, what does
+// that mean in the following cases:
+// - Array operations (see below)
+// - Compound expressions (e.g. a + b*c)
+// - etc.
+
+
+// Array math
+
+// Arrays (of the same size? what about slices?) be operated on like J or APL, only using wrapping operators.
+[3]int{1, 2, 3} .+ [3]int{4, 5, 6} // [3]int{5, 7, 9}
+
+// You can also operate on arrays with scalars. The scalar can be on either side of the operator.
+[3]int{1, 2, 3} .+ 1 // [3]int{2, 3, 4}
+
+// This gives some simple high-level ways to express SIMD operations. For more control, there should be a
+// "simd" package
+
+
 // Pointers
 
 // There are 5 pointer types: owned, borrowed, unsafe, reference counted, and weak. All pointer types can be nil.

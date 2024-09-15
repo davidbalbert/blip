@@ -282,19 +282,6 @@ union {
 // - Compound expressions (e.g. a + b*c)
 // - etc.
 
-
-// Array math
-
-// Arrays (of the same size? what about slices?) be operated on like J or APL, only using wrapping operators.
-[3]int{1, 2, 3} .+ [3]int{4, 5, 6} // [3]int{5, 7, 9}
-
-// You can also operate on arrays with scalars. The scalar can be on either side of the operator.
-[3]int{1, 2, 3} .+ 1 // [3]int{2, 3, 4}
-
-// This gives some simple high-level ways to express SIMD operations. For more control, there should be a
-// "simd" package
-
-
 // Pointers
 
 // There are 5 pointer types: owned, borrowed, unsafe, reference counted, and weak. All pointer types can be nil.
@@ -819,3 +806,36 @@ func withDefault() (int, int) {
     q, r := divmod(5, 0) or 0, 0
     return q, r
 }
+
+// Ideas for array programming, SIMD, etc.
+
+// Arrays (of the same size? what about slices?) be operated on like J or APL, only using wrapping operators.
+[3]int{1, 2, 3} .+ [3]int{4, 5, 6} // [3]int{5, 7, 9}
+
+// You can also operate on arrays with scalars. The scalar can be on either side of the operator.
+[3]int{1, 2, 3} .+ 1 // [3]int{2, 3, 4}
+
+// This gives some simple high-level ways to express SIMD operations. For more control, there should be a
+// "simd" package
+
+// Vector types
+//
+// Option 1: just use arrays. There's no need for separate vector types.
+// Option 2: some possible type names:
+int8x16
+int16x8
+int32x4
+int64x2
+float4
+double2
+etc.
+
+// What about matrix types?
+int8x16x16
+int16x8x8
+int32x4x4
+int64x2x2
+float4x4
+double2x2
+
+// float4x4 and double2x2 are good, but the others are starting to get awkward.

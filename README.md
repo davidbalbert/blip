@@ -145,3 +145,11 @@ Notes:
     - Go semantics with perfect C interop.
     - Memory safe C (not memory safe C++)
 - What operations/algorithms are common enough in these usecases to deserve a special case language construct?
+
+
+### Interesting resources
+
+- https://www.humprog.org/~stephen/research/papers/kell17some-preprint.pdf
+- https://www.ralfj.de/blog/2018/07/24/pointers-and-bytes.html
+- https://www.cis.upenn.edu/~stevez/papers/KHM+15.pdf
+- https://github.com/NICUP14/MiniLang

@@ -15,3 +15,8 @@ func make(T, mem.Allocator) $*T | error
 
 // For non-panicing allocation with the same semantics as make(T), you can use the DefaultAllocator.
 x, err := make(T, mem.DefaultAllocator)
+
+
+// TODO: there's a problem with this interface. There aren't a ton of reasons to use custom allocators. But one of them
+// is a slab allocator. But slab allocators, by definition, can only allocate a specific size, so this interface doesn't
+// make any sense. Figure out what to do about this.

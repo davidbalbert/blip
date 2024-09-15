@@ -815,6 +815,9 @@ func withDefault() (int, int) {
 // You can also operate on arrays with scalars. The scalar can be on either side of the operator.
 [3]int{1, 2, 3} .+ 1 // [3]int{2, 3, 4}
 
+// Other possible operators:
+.= // broadcast assignment
+
 // This gives some simple high-level ways to express SIMD operations. For more control, there should be a
 // "simd" package
 
@@ -828,7 +831,7 @@ int32x4
 int64x2
 float4
 double2
-etc.
+// etc.
 
 // What about matrix types?
 int8x16x16
@@ -839,3 +842,9 @@ float4x4
 double2x2
 
 // float4x4 and double2x2 are good, but the others are starting to get awkward.
+
+// Option 3: some sort of simd type
+simd[16]int8
+simd[8]int16
+simd[4]int32
+// etc.

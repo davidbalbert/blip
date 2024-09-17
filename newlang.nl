@@ -553,7 +553,7 @@ func get_name(node !*C.Node) !*C.char
 
 n := &C.Node{}           // typeof(n) is $*C.Node
 s1 := get_name(n.!)      // typeof(s1) is !*C.char
-s2 := get_name(n.!) in n // typeof(s2) is &*C.char. Alt: .(in n) or in! n.
+s2 := get_name(n.!) in n // typeof(s2) is *C.char. Alt: .(in n) or in! n.
 
 // You can't bind the lifetime of a borrow to an unsafe pointer. We don't know how long it will live:
 n := C.make_node()     // typeof(n) is !*C.Node

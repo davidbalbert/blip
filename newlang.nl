@@ -337,16 +337,41 @@ $*int       // owned
 // be refered to after the cast.
 //
 // Owned pointers can be set to nil, or to a new address. If the pointer was non-nil previously, the memory it pointed
-// to is freed. You can not set an owned pointer to nil or a new address if it is being borrowed.
+// to is freed. You cannot set an owned pointer to nil or a new address if it is being borrowed.
 
 // Borrowed pointers
 //
-// Borrowed pointers can be created from owned pointers as well as non-pointers, and can't outlive the value they
-// point to. No action is performed on drop, and they never have to be dropped explicitly. Borrowed pointers can be
-// passed to C functions without a cast – they are implicitly converted to unsafe pointers. When passed to C,
-// the programmer is responsible for ensuring that if the pointer is escaped, it doesn't outlive its referent.
+// Borrowed pointers can be created from owned pointers, reference counted pointers as well as non-pointers, and can't
+// outlive the value they point to. No action is performed on drop, and they never have to be dropped explicitly. When
+// passed to C, the the programmer is responsible for ensuring that if the pointer is escaped, it doesn't outlive
+// its referent.
 //
-// Borrwed pointers can never have their address changed.
+// TODO: it should be possible to reassign a borrowed pointer to a new address. Specifically, this is useful for
+// things like iterating over a linked list (see this Rust example from https://rust-lang.github.io/rfcs/2094-nll.html).
+// Specifically note the `list = n` reassignment:
+//
+// struct List<T> {
+//     value: T,
+//     next: Option<Box<List<T>>>,
+// }
+//
+// fn to_refs<T>(mut list: &mut List<T>) -> Vec<&mut T> {
+//     let mut result = vec![];
+//     loop {
+//         result.push(&mut list.value);
+//         if let Some(n) = list.next.as_mut() {
+//             list = n;
+//         } else {
+//             return result;
+//         }
+//     }
+// }
+//
+// TODO: what about setting a borrowed pointer to nil or initializing one to nil (or creating a zero-valued struct that
+// contains a borrowed pointer)? Nil has a static lifetime, so I think this should be ok? But what about when a struct
+// has a non-exported borrow? Possible solution: all zero valued structs have a static lifetime. The only way to assign
+// to a non-exported borrow or to create an instance with a non-zero value is through a function. And annotations on
+// function signatures should be able to restrict the lifetime of returned struct (or the struct that's mutated).
 
 // Unsafe pointers
 //
@@ -356,6 +381,10 @@ $*int       // owned
 
 
 // Reference counting
+
+// A reference counted pointer owns its memory and frees it when its reference count reaches 0. Like owned pointers,
+// a reference counted pointer cannot be set to nil or to point at another reference counted value while it is
+// being borrowed.
 
 // In pseudocode, a refcounted pointer is a pointer to a struct struct that's stored on the heap. The count
 // is updated atomically.
@@ -555,6 +584,8 @@ n := &C.Node{}           // typeof(n) is $*C.Node
 s1 := get_name(n.!)      // typeof(s1) is !*C.char
 s2 := get_name(n.!) in n // typeof(s2) is *C.char. Alt: .(in n) or in! n.
 
+// TODO: does this mean you can't call a method on an unsafe pointer? This would be bad.
+
 // You can't bind the lifetime of a borrow to an unsafe pointer. We don't know how long it will live:
 n := C.make_node()     // typeof(n) is !*C.Node
 s1 := get_name(n)      // typeof(s1) is !*C.char
@@ -587,6 +618,205 @@ s := copy_name(n.!) // typeof(s1) is !*C.char.
 defer C.free(s)
 
 // If you don't do this, s will leak.
+
+
+// Borrowed pointers and lifetime dependence
+
+// The goal is to prevent use-after-free and double-free. In other words, to provide temporal safety.
+//
+// To start, all memory has a single owner. This owner is a variable that's responsible for freeing the
+// memory at the appropriate time.
+//
+// Local variables and owned pointers own their memory and free it at the end of the variable or pointer's
+// lexical scope, by manipulation of the stack pointer or by using the appropriate allocator respectively.  
+//
+// A reference counted pointer also owns its memory, and frees it when its reference count reaches 0.
+//
+// A borrowed pointer doesn't own the memory it points to. Instead, it is a temporary reference to memory
+// owned by someone else. In order to prevent use-after-free and double-free bugs, a borrowed pointer cannot
+// outlive the memory it points to. When an owned or reference counted pointer is being borrowed, it must
+// not be set to nil or made to point to a different address.
+//
+// The compiler guarantees that a borrowed pointer cannot outlive its referent:
+
+// This is fine. P is alive until the end of the function, and doesn't outlive x.
+func foo() {
+    var x int = ...
+    p := &x // typeof(p) is *int. ok: p doesn't outlive x.
+}
+
+func foo() {
+    var p *int
+    {
+        var x int = ...
+        p = &x // error: p outlives x
+    }
+}
+
+
+func bar(p *int) {
+    // ...
+}
+
+func foo() {
+    var x int = ...
+    bar(&x) // ok: the borrow of x lives until bar returns.
+}
+
+// Under some circumstances, borrows can be returned from functions and methods.
+
+// The lifetime of res is the smaller of the lifetimes of a and b.
+func max(a, b *int) res *int {
+    if a > b {
+        return a
+    }
+    return b
+}
+
+// You can explicitly specify lifetimes if the result depends on only some of the arguments.
+// In this case, the lifetime of res is allowed to outlive the lifetime of b, but not a.
+func add(a, b *int) *int in a {
+    *a += b
+    return a
+}
+
+// This works even if the borrows are of different types.
+func foo(t *T, u *U, cond bool) *int {
+    if cond {
+        return &t.x
+    }
+    return &u.x
+}
+
+// The rules are the same for methods. The receiver is treated as another argument.
+func (t *T) foo(u *U, cond bool) *int {
+    if cond {
+        return &t.x
+    }
+    return &u.x
+}
+
+func foo(t *T, u *U, cond bool) res *int in t {
+    if cond {
+        return t.x += u.y
+    }
+    return &t.x
+}
+
+// What about re-assigning borrows?
+func swap(a, b *int) {
+    a, b = b, a // error: a and b must have the same lifetime to reassign.
+}
+
+// Why is the above the case? If the above were allowed, you could do this:
+func caller() {
+    var x int
+    px := &x
+    {
+        var y int
+        py := &y
+        swap(px, py)
+    }
+    print(*px) // error: use-after-free because after the swap px points to y, which has been freed.
+}
+
+// To fix this, we can explicitly specify lifetimes. In the above example, the call to swap would shorten
+// the lifetime of px to the end of the inner block.
+//
+// TODO: this is hard to read, can we fix it? Maybe `func swap(a, b *int in .)` or something like that?
+func swap(a in b, b in a *int) {
+    a, b = b, a
+}
+
+// Of course, you can swap values rather than addresses without worrying about lifetimes:
+func swap(a, b, *int) {
+    *a, *b = *b, *a
+}
+
+// Should this be allowed directly, or do you have to specify `*int in package`?
+func alwaysNil() *int {
+    return nil
+}
+
+// What about closures?
+//
+// Options:
+// - perform escape analysis to determine that x should be heap allocated, and deallocated when the closure is dropped.
+// - error: the closure outlives x and therefore cannot capture its value directly.
+func caller() func() *int{
+    var x int
+
+    return func() *int {
+        return &x
+    }
+}
+
+// A similar example:
+// - perform escape analysis to determine that x should be heap allocated and is owned by the closure.
+// - error: the closure outlives x, and therefore cannot capture px.
+func caller() func() *int {
+    var x int
+    px := &x
+
+    return func() *int {
+        return px
+    }
+}
+
+
+// What is the lifetime of p? Nil's lifetime is static. Does `p = &x` shorten p's lifetime to that of x? It seems like
+// the logical thing to do, but I don't know how expensive that would be.
+func foo() {
+    var x int
+    var p *int = nil
+    p = &x
+    print(*p)
+}
+
+
+
+// A composite type with a borrowed pointer is considered borrowed. A composite type containing another composite type
+// is also borrowed and obeys the same rules as above.
+
+// Consider this struct
+type pair struct {
+    x, y *int
+}
+
+// What happens when we do this? One possibility is to capture the lifetimes as they go in and out of the struct.
+func foo() {
+    var x int
+    var z1 *int
+    var z2 *int
+    {
+        var y int
+
+        p := pair{x: &x, y: &y}
+        z1 = p.x
+        z2 = p.y // error: p.y outlives y
+    }
+}
+
+// Another option is to assume that the lifetime of any references in the struct are the same as the lifetime of the struct itself.
+func foo() {
+    var x int
+    var z1 *int
+    var z2 *int
+    {
+        var y int
+
+        p := pair{x: &x, y: &y}
+        z1 = p.x // error: z1 outlives p
+        z2 = p.y // error: z2 outlives p
+    }
+}
+
+// If we added a "." lifetime to refer to the lifetime of the composite type itself, then the original definition of pair would be
+// equivalent to the following:
+type pair struct {
+    x, y *int in .
+}
+
 
 
 // TODO: Iterators and loops

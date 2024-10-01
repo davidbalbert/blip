@@ -22,7 +22,7 @@ Appending to a slice will always require heap allocation, because the underlying
 One idea:
 - Strings borrow their contents are backed by byte arrays. In no-alloc mode, you can mutate, but you can't append. The only way to create a string is to have have a byte array, slice it, and cast it to a string. String literals have static byte arrays allocated for them. NOTE: does this imply that they're immutable? What about lifetimes? How does the compiler know what a string's lifetime is?
 
-`alias string &*[N]byte`? That can't work because N is unknown. Perhaps it has to be an unsafe pointer?
+`alias string *[N]byte`? That can't work because N is unknown. Perhaps it has to be an unsafe pointer?
 
 
 *This brings up a related question – noalloc mode will be great for a micro-controller, but we want to be able to write an OS. That requires two things:

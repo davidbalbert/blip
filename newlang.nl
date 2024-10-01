@@ -660,7 +660,7 @@ defer C.free(s)
 // memory at the appropriate time.
 //
 // Local variables and owned pointers own their memory and free it at the end of the variable or pointer's
-// lexical scope, by manipulation of the stack pointer or by using the appropriate allocator respectively.  
+// lexical scope, by manipulation of the stack pointer or by using the appropriate allocator respectively.
 //
 // A reference counted pointer also owns its memory, and frees it when its reference count reaches 0.
 //

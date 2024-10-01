@@ -327,10 +327,10 @@ $*int       // owned
 // underlying object when they go out of scope. A piece of memory can have exactly one owner. Owned pointers are
 // move-only. This ensures that the "single owner" invariant holds. Owned pointers can be passed as arguments to
 // functions or returned. Because they are move-only, doing either transfers ownership of the referenced memory.
+// An owned pointer's referenced memory is always heap allocated.
 //
-// When an owned pointer goes out of scope, the memory it refers to is freed. This is true whether the memory it
-// points to is on the stack or the heap. Owned pointers to nocopy types must be explicitly dropped. Owned pointers
-// to copiable types are dropped implicitly.
+// When an owned pointer goes out of scope, the memory it refers to is freed. Owned pointers to nocopy types must
+// be explicitly dropped. Owned pointers to copiable types are dropped implicitly.
 //
 // To pass an owned pointer to a C function, you must explicitly cast it to an unsafe pointer. This makes the C
 // function responsible for freeing its memory. This cast is considered a move, and the owned pointer can no longer
@@ -386,23 +386,30 @@ $*int       // owned
 // a reference counted pointer cannot be set to nil or to point at another reference counted value while it is
 // being borrowed.
 
-// In pseudocode, a refcounted pointer is a pointer to a struct struct that's stored on the heap. The count
-// is updated atomically.
+// In pseudocode, a refcounted pointer is a fat pointer. One of the fields points to the value, and the other to the
+// metadata, which includes the reference count. The count is updated atomically.
+
 struct {
-    refcount int
-    cleanup func(T)
-    value T
+    meta !*struct {
+        refcount int
+        cleanup func($*T)
+    }
+    data !*T
 }
 
-// To make a refcounted pointer, use the rc builtin. The refcounted struct is allocated on the heap and the
-// bytes of v are copied in. You can also pass in an owned pointer. In these forms, T must be copyable.
+// To make a refcounted pointer, use the rc builtin. The metadata is allocated on the heap and the bytes of v are
+// copied in. You can also pass in an owned pointer. In these forms, T must be copyable.
 func rc(v T) #*T
 func rc(p $*T) #*T
 
 // You can also supply a cleanup function that will be called when the refcount reaches 0. In this form, T may
 // be non-copyable.
-func rc(v T, cleanup func(v T)) #*T
-func rc(p $*T, cleanup func(v $*T)) #*T
+func rc(v T, cleanup func(p $*T)) #*T
+func rc(p $*T, cleanup func(p $*T)) #*T
+
+// TODO: it feels a bit odd that cleanup takes an owned pointer in both cases. I believe this is correct, but it would
+// somehow feel nicer if the first form took the value itself.
+
 
 // You can also integrate external reference counted types by providing custom retain and release functions.
 //
@@ -410,12 +417,37 @@ func rc(p $*T, cleanup func(v $*T)) #*T
 func rc(v T, retain func(v T), release func(v T), isRetained bool) #*T
 func rc(p !*T, retain func(p !*T), release func(p !*T), isRetained bool) #*T
 
-// A custom refcounted pointer has a different layout in memory:
+// TODO:
+// - passing in isRetained feels a bit ugly. Is there a better way?
+// - The idea behind having both T and !*T is that the former could be a struct that contains a reference counted pointer.
+//   That makes sense, but it raises a question – will the type of the value always mirror the type of the parameter passed
+//   to retain and release?
+
+
+// A custom refcounted pointer has one of the following layouts in memory (again, pseudocode):
+
 struct {
-    retain func(T)
-    release func(T)
+    meta !*struct {
+        retain func(T)
+        release func(T)
+        refcount int
+    }
     value T
 }
+
+struct {
+    meta !*struct {
+        retain func(!*T)
+        release func(!*T)
+        refcount int
+    }
+    value !*T
+}
+
+// TODO: in the first case, we don't really have a fat pointer because we're storing the value directly. We're doing that because
+// we assume the value is some opaque type that wraps a pointer. This means we have to know the size of the value at compile time.
+// But I believe we'll always know this.
+
 
 // You can make a weak reference using the weak builtin
 //

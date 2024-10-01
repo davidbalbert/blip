@@ -337,7 +337,8 @@ $*int       // owned
 // be refered to after the cast.
 //
 // Owned pointers can be set to nil, or to a new address. If the pointer was non-nil previously, the memory it pointed
-// to is freed. You cannot set an owned pointer to nil or a new address if it is being borrowed.
+// to is freed. You cannot set an owned pointer to nil or a new address if it is being borrowed. You can't move an
+// owned pointer if it's being borrowed either.
 //
 // Owned pointers are fat pointers – they need to know how to free their memory:
 

@@ -347,8 +347,8 @@ struct {
     free func(!*T)
 }
 
-// free is derived from the allocator that allocated p. Alternatively, we could store a mem.Allocator value, but then
-// the owned pointer would be 3 words instead of 2 (interface values themselves are fat pointers).
+// free is derived from the mem.Allocator that allocated p. Alternatively, we could store a mem.Allocator value, but
+// then the owned pointer would be 3 words instead of 2 (interface values themselves are fat pointers).
 
 
 // Borrowed pointers

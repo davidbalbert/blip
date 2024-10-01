@@ -338,6 +338,17 @@ $*int       // owned
 //
 // Owned pointers can be set to nil, or to a new address. If the pointer was non-nil previously, the memory it pointed
 // to is freed. You cannot set an owned pointer to nil or a new address if it is being borrowed.
+//
+// Owned pointers are fat pointers – they need to know how to free their memory:
+
+struct {
+    p !*T
+    free func(!*T)
+}
+
+// free is derived from the allocator that allocated p. Alternatively, we could store a mem.Allocator value, but then
+// the owned pointer would be 3 words instead of 2 (interface values themselves are fat pointers).
+
 
 // Borrowed pointers
 //
@@ -394,7 +405,7 @@ struct {
         refcount int
         cleanup func($*T)
     }
-    data !*T
+    value !*T
 }
 
 // To make a refcounted pointer, use the rc builtin. The metadata is allocated on the heap and the bytes of v are
@@ -407,9 +418,16 @@ func rc(p $*T) #*T
 func rc(v T, cleanup func(p $*T)) #*T
 func rc(p $*T, cleanup func(p $*T)) #*T
 
-// TODO: it feels a bit odd that cleanup takes an owned pointer in both cases. I believe this is correct, but it would
-// somehow feel nicer if the first form took the value itself.
+// TODO:
+// - it feels a bit odd that cleanup takes an owned pointer in both cases. I believe this is correct, but it would
+//   somehow feel nicer if the first form took the value itself.
+// - Maybe we shouldn't have the non-pointer taking form at all. E.g. if you want to create a refcounted pointer to
+//   a value, you need to take the address of that value:
 
+rc1 := rc(&5)
+
+p1 := make(int32, anAllocator)
+rc2 := rc(p1)
 
 // You can also integrate external reference counted types by providing custom retain and release functions.
 //

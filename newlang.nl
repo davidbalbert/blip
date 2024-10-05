@@ -45,7 +45,6 @@ C.ulong
 //
 // TODO: how are C structs with bitfields imported?
 
-// Go has complex64 and complex128. Not sure if we want those.
 
 
 // An array. E.g. [5]int. Size is known statically.

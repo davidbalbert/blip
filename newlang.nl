@@ -360,6 +360,8 @@ alias byte uint8
 // useful for types that manage resources and must be cleaned up later, like a net.Conn that ownes a
 // file descriptor.
 
+// TODO: Structs that contain owned pointers are non-copyable, but they don't have to be cleaned up.
+
 // If a type embeds a non-copyable type, it is also non-copyable. The type mem.NoCopy is a zero-sized
 // non-copyable type. C.f. structs.HostLayout in Go. To make a non-copyable struct, embed mem.NoCopy:
 type Fd struct {
@@ -729,9 +731,9 @@ func get_name(node !*C.Node) !*C.char
 // of get_name must ensure that the name doesn't outlive the node. While it's possible to use the unsafe
 // pointer directly, you can also convert it to a borrow by specifying the borrow's lifetime.
 
-n := &C.Node{}           // typeof(n) is $*C.Node
-s1 := get_name(n.!)      // typeof(s1) is !*C.char
-s2 := get_name(n.!) in n // typeof(s2) is *C.char. Alt: .(in n) or in! n.
+n := &C.Node{}             // typeof(n) is $*C.Node
+s1 := C.get_name(n.!)      // typeof(s1) is !*C.char
+s2 := C.get_name(n.!) in n // typeof(s2) is *C.char. Alt: .(in n) or in! n.
 
 // TODO: does this mean you can't call a method on an unsafe pointer? This would be bad.
 
@@ -1111,7 +1113,6 @@ func good() {
 func warning() {
     q, r, err := divmod(5, 2) // warning: q, r, and err are unused.
 }
-
 
 // For functions that just return an error, we're not forced to check the error, but we'll get
 // warnings if we ignore the return value, or if we assign it to a variable that's never used.

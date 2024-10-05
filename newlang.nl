@@ -15,6 +15,9 @@ float16
 float32
 float64
 
+complex64
+complex128
+
 // Width of a data register.
 int
 uint

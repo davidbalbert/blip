@@ -46,15 +46,111 @@ C.ulong
 // TODO: how are C structs with bitfields imported?
 
 
+// Arrays and slices
 
-// An array. E.g. [5]int. Size is known statically.
-[N]T
+// An array. E.g. [5]int. Size is known statically. Cannot be resized.
+[5]T
 
-// A slice. E.g. []int. Length and capacity are stored in the slice.
+// Arrays are values. Assigning an array to another variable copies it
+a1 := [5]int{1, 2, 3, 4, 5}
+a2 := a1
+a2[0] = 100
+fmt.Println(a1) // [1, 2, 3, 4, 5]
+fmt.Println(a2) // [100, 2, 3, 4, 5]
+
+// A slice. E.g. []int. A growable array with length and capacity determined at runtime.
 // TODO:
 // - Can slices be nil, like Go?
 []T
 
+// In pseudocode:
+struct {
+    data $*T
+    len int
+    cap int
+}
+
+// To grow a slice, use the append builtin.
+func append(s []T, v T) []T
+s := []int{1, 2, 3}
+s = append(s, 4)
+
+// Slices are move only.
+s1 := []int{1, 2, 3}
+s2 := s1
+print(s1) // error
+
+// You can copy a slice into a new slice.
+s1 := []int{1, 2, 3}
+s2 := []int(s1[:]) // alt: dup(s1)
+
+
+// A borrowed slice. E.g. *[]int. Mutable, but not growable.
+*[]T
+
+// In pseudocode:
+struct {
+    data *T
+    len int
+}
+
+// Can be made from a slice, an array, or another borrowed slice:
+
+a := [5]int{1, 2, 3, 4, 5}
+s1 := a[:]  // typeof(s1) == *[]int
+s2 := a[1:] // typeof(s3) == *[]int
+p1 := &a    // typeof(p) == *[5]int
+// TODO: should &a be *[]int instead?
+
+s := []int{1, 2, 3}
+s1 := s[:]  // typeof(s2) == *[]int
+s2 := s[1:] // typeof(s3) == *[]int
+s3 := &s    // typeof(s2) == *[]int
+// NOTE: s3 currently different than &a
+
+
+// A shared slice. E.g. #*[]int. Mutable and growable. Reference counted.
+#*[]T
+
+// Slicing a shared slice returns another shared slice.
+s := #*[]int{1, 2, 3}
+s1 := s[:]  // typeof(s1) == #*[]int
+s2 := s[1:] // typeof(s2) == #*[]int
+
+// TODO: I'm not sure if the shared slice literal makes sense. Longhand is `rc(&[]int{1,2,3})`. But we want a good shorthand.
+
+
+// Append works on shared slices:
+func append(s #*[]T, v T) #*[]T
+s := #*[]int{1, 2, 3}
+s = append(s, 4, 5, 6)
+
+
+// You can borrow a shared slice:
+s := #*[]int{1, 2, 3}
+s1 := *[]int(s) // typeof(s1) == *[]int
+
+// TODO: we want to allow borrowing shared slices, and appending to shared slices. What does the data layout of the shared slice
+// need to be in order to allow realloc without leaving out of date borrows.
+
+
+// Flexible array member. E.g. [?]int. Can only be used as the last element of a struct.
+[?]T
+
+// E.g. a header with some trailing data
+struct {
+    type int
+    len int
+    value [?]byte
+}
+
+// You can tie the length of a flexible array member to another property of the struct:
+
+struct {
+    type int
+    len int
+    value [len]byte
+}
 // A map. E.g. map[string]int. Alt: dict[string]int.
 map[K]V
 

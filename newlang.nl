@@ -135,6 +135,8 @@ s1 := *[]int(s) // typeof(s1) == *[]int
 
 
 // Flexible array member. E.g. [?]int. Can only be used as the last element of a struct.
+//
+// TODO: come up with a better name than "flexible array member."
 [?]T
 
 // E.g. a header with some trailing data

@@ -153,6 +153,75 @@ struct {
     len int
     value [len]byte
 }
+
+
+// Strings
+//
+// A string is a slice of bytes that owns its storage. Strings are null-terminated.
+string
+
+// Slicing a string borrows it:
+s := "hello" // typeof(s) == string
+s1 := s[1:]  // typeof(s1) == *string
+
+// You can copy a borrowed string into a new string:
+s := "hello"
+s1 := string(s[1:]) // alt: dup(s)
+
+// Strings are copied when assigned:
+// TODO: this is different from slices, which are move only. Gives me pause.
+s1 := "hello"
+s2 := s1
+s2[0] = 'H'
+fmt.Println(s1) // "hello"
+fmt.Println(s2) // "Hello"
+
+// Newlang source files are always UTF-8 encoded. By default, string literals are UTF-8 encoded. You can change
+// the encoding of string literals using a compiler flag. This is to support better C interop on systems where
+// the default encoding is not UTF-8.
+
+// Byte slices and arrays can be borrowed as strings:
+s := []byte{1, 2, 3}
+s1 := (*string)(&s) // typeof(s1) == *string
+
+a := [3]byte{1, 2, 3}
+s1 := (*string)(&a) // typeof(s1) == *string
+
+// Same for slices and arrays of C.char:
+s := []C.char{1, 2, 3}
+s1 := (*string)(&s) // typeof(s1) == *string
+
+s := [3]C.char{1, 2, 3}
+s1 := (*string)(&s) // typeof(s1) == *string
+
+// Byte slices and C.char slices can be initialized from string literals:
+s := []byte("hello")
+s := []C.char("hello")
+
+// Borrowed strings can be passed to C functions that expect a `char*`:
+s := "hello"
+C.puts(&s.!) // alt: (&s).! or s.!
+
+// On platforms where C.CHAR_BIT > 8, the above code will copy the string into a buffer of []C.char and
+// pass a pointer to that buffer.
+
+// Indexing into a string returns bytes:
+s := "hello"
+b := s[1] // typeof(b) == byte
+
+// Iterating over a string yields runes, which are UTF-8 code points:
+// TODO: what if the compiler specifies a different default encoding for string literals? Should runes
+// be in that encoding, or should we always use UTF-8?
+s := "hello"
+for r := range s {
+    fmt.Println(r) // typeof(r) == rune
+}
+
+
+// TODO:
+// - what about $*string? What does that mean?
+// - can strings be resized?
+// - can they be mutated?
 // A map. E.g. map[string]int. Alt: dict[string]int.
 map[K]V
 

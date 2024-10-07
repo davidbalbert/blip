@@ -1,0 +1,8 @@
+Ideas for generics
+
+1. If we have comptime, add Zig-style comptime generics.
+2. Instead of Go-style type sets, just add operators to interfaces:
+
+type comparable interface {
+    <, =
+}

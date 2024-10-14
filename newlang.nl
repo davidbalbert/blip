@@ -64,8 +64,9 @@ fmt.Println(a1) // [1, 2, 3, 4, 5]
 fmt.Println(a2) // [100, 2, 3, 4, 5]
 
 // A slice. E.g. []int. A growable array with length and capacity determined at runtime.
-// TODO:
-// - Can slices be nil, like Go?
+// Another way to think of slice is as a growable owned pointer to an array.
+//
+// Slices can be nil. A nil slice has len() == 0.
 []T
 
 // In pseudocode:
@@ -105,13 +106,11 @@ a := [5]int{1, 2, 3, 4, 5}
 s1 := a[:]  // typeof(s1) == *[]int
 s2 := a[1:] // typeof(s3) == *[]int
 p1 := &a    // typeof(p) == *[5]int
-// TODO: should &a be *[]int instead?
 
 s := []int{1, 2, 3}
 s1 := s[:]  // typeof(s2) == *[]int
 s2 := s[1:] // typeof(s3) == *[]int
 s3 := &s    // typeof(s2) == *[]int
-// NOTE: s3 currently different than &a
 
 
 // A shared slice. E.g. #*[]int. Mutable and growable. Reference counted.
@@ -122,7 +121,8 @@ s := #*[]int{1, 2, 3}
 s1 := s[:]  // typeof(s1) == #*[]int
 s2 := s[1:] // typeof(s2) == #*[]int
 
-// TODO: I'm not sure if the shared slice literal makes sense. Longhand is `rc(&[]int{1,2,3})`. But we want a good shorthand.
+// TODO: I'm not sure if the shared slice literal makes sense. Longhand is `rc([]int{1,2,3})`. But we want a good shorthand.
+// Perhaps #&[]int{1, 2, 3}? I don't love it, but maybe.
 
 
 // Append works on shared slices:
@@ -133,31 +133,116 @@ s = append(s, 4, 5, 6)
 
 // You can borrow a shared slice:
 s := #*[]int{1, 2, 3}
-s1 := *[]int(s) // typeof(s1) == *[]int
+s1 := &*s     // typeof(s1) == *[]int. Alt: *[]int(s)
+s2 := &*s[1:] // typeof(s2) == *[]int.
 
-// TODO: we want to allow borrowing shared slices, and appending to shared slices. What does the data layout of the shared slice
-// need to be in order to allow realloc without leaving out of date borrows.
+// While a shared slice is borrowed, it can't be appended to because that might reallocate and invalidate the borrow. This is
+// enforced at runtime. Appending to a shared slice with a borrow will panic.
 
 
-// Flexible array member. E.g. [?]int. Can only be used as the last element of a struct.
+// Dynamic arrays.
 //
-// TODO: come up with a better name than "flexible array member."
-[?]T
+// These are arrays (i.e. they're values, stored inline, and can't be resized), but their length is known only at runtime.
+//
+// TODO: is there a better name than "dynamic array"?
+n := 5
+a := [n]int{}
 
-// E.g. a header with some trailing data
-struct {
-    type int
-    len int
-    value [?]byte
-}
-
-// You can tie the length of a flexible array member to another property of the struct:
-
-struct {
+// Dynamic arrays are useful for making a struct whose size is only known at runtime.
+type msg struct {
     type int
     len int
     value [len]byte
 }
+
+// Len is constant and is specified at allocation time. E.g. msg{len: 10} will allocate value inline such that
+// len(m.value) == m.len. If you allocate the zero value of msg (i.e. msg{}), len(m.value) will be 0.
+m := msg{len: 10}
+m.len = 5 // error: m.len is constant
+
+// When using make(T) or make(T, mem.Allocator) to heap-allocate a value with a dynamic array, you can specify len as part of the type.
+// M.len will be initialized to 10.
+m := make(msg{len: 10}) // typeof(m) == $*msg
+
+// TODO: right now, make() takes a type as an argument, and this is a special case where constant properties can be specified as part
+// of the type (even though len is a runtime value – it's not actually part of the type). Should make() take an initialization expression
+// instead? This would allow us to use a custom allocator with the same flexibility as initializing a variable with an address of a value
+// e.g. (p := &5). Some possible: make(int{5}, a), make(int(5), a), make(user{}), etc.
+
+// Dynamic arrays, and structs containing dynamic arrays (either directly or indirectly) are unsized (dynamically sized?) types – i.e. their
+// size isn't known at compile time. This means you can't reassign a value of this type once you've created it:
+m := msg{len: 10}
+m = msg{len: 5} // error: can't reassign value `m` of unknown size.
+
+// The above is an error even if the second assignment had len == 10.
+
+
+// You can't create an array or slice of unsized types:
+a := [5]msg{} // error: can't create an array of msg, which has an unknown size
+s := []msg{}  // error: ditto
+
+// To get around these restrictions, you can use use pointers:
+m := &msg{len: 10} // typeof(m) == $*msg
+m = &msg{len: 5}   // ok
+
+a := [5]$*msg{} // ok
+s := []$*msg{}  // ok
+
+// Borrowed pointers also work:
+
+a := [5]*msg{} // ok
+s := []*msg{}  // ok
+
+
+// In an unsized struct, the length of the dynamic array must appear in memory ahead of the dynamic array itself.
+struct {
+    data [len]int // error: len must appear before data
+    len int
+}
+
+// Multiple dynamic arrays can be bound to the same length. This lets you use the "struct of arrays" pattern from data-oriented design.
+//
+// TODO: is there a way to express growable "struct of arrays" like Zig's MultiArrayList? For it to be useful, it would require generics.
+type particles struct {
+    len int
+    positions  [len]struct{ x, y double }
+    velocities [len]struct{ vx, vy double }
+}
+
+// A struct can have dynamic arrays of different lengths:
+struct {
+    len1 int
+    data1 [len1]byte
+    len2 int
+    data2 [len1]int32
+}
+
+
+// Unsafe dynamic arrays. E.g. [!?]int. These are for interop with C's flexible array members. They can only appear as the final field of
+// a struct. This is unsafe because the compiler doesn't know how long value is, even at runtime. This means it can't do bounds checking
+// on value and can't use for range loops.
+//
+// len(m.value) is a compile error.
+struct msg {
+    type int
+    len int
+    value [!?]byte
+}
+
+n := 10
+sz := unsafe.SizeOf(msg) + n*unsafe.SizeOf(byte)
+m := C.malloc(sz).(!*msg) // typeof(m) == !*msg
+m.len = n
+// do stuff with m
+C.free(m)
+
+// TODO: is there a way to allocate a msg on the stack? Perhaps
+n := 10
+sz := unsafe.SizeOf(msg) + n*unsafe.SizeOf(byte)
+m := unsafe.Alloca(size).(!*msg)
+m.len = n
+// make sure not to free m, it's stack allocated.
+
 
 
 // Strings
@@ -265,29 +350,6 @@ struct {
     Conn
     int
 }
-
-// TODO: We'd like to have a way to represent header + data in a struct. In C, you'd use a flexible,
-// array member, e.g.
-//
-// struct string {
-//     len int;
-//     char data[];
-// }
-//
-// We could do the same in Newlang (here's a possible spelling), but I wonder if there might be a better
-// way to express things.
-//
-type buf struct {
-    len int
-    data ...byte // Alt: `data byte...`
-}
-
-// I'm not sure if you can put this the stack or not. While the size can't be known by looking at the struct
-// definition itself, as long as the size of data doesn't change, its equivalent to alloca(3).
-//
-// Heap allocating this is easy – the size (sizeof(int) + len) is dynamically stored in the heap, and dropping
-// is therefore dynamic as well.
-
 
 // Tagged unions. Basically enum with associated values.
 union {
@@ -661,59 +723,72 @@ p := rc(fd, close) // typeof(p) is #*Fd
 
 // Pointer conversions
 
-// A variable can be borrowed multiple times.
-var x int
-p1 := &x           // typeof(p1) == *int
-var p2 *int = &x  // type can be explicitly specified
+// Variables can be borrowed
+x := 5
+p1 := &x // typeof(p1) == *int
+p2 := &x // typeof(p2) == *int
+p3 := p2 // typeof(p3) == *int
 
-// A local variable can be moved into an owned pointer, in which case the original variable is consumed. Escape
-// analysis is performed. If the variable escapes (e.g. is returned) or is consumed by a function, it will be
-// heap allocated.
-var x int
-var p $*int = &x  // may be stack or heap allocated
-print(x)          // error: x was moved to p. It doesn't matter that x is copyable.
+// Owned pointers can also be borrowed:
+p := &5           // typeof(p) == $*int
+b1 := &*p         // typeof(b1) == *int
+b2 := b1          // typeof(b2) == *int
+var b3 *int = &*p // typeof(b3) == *int
 
-// Another syntax for the above
-var x int
-p := (*int)(&x)
+// Taking the address of a literal creates an owned pointer. If the pointer escapes, it's value is heap
+// allocated, if it doesn't it's stack allocated.
+p := &5 // typeof(p) == $*int
 
-// TOOD: I don't love that the type of &x can be either $*int or *int depending on its context. But I do want
-// the following examples to work, and they seem to require it. This could be solved by having another operator
-// in addition to '&'.
+// To force heap allocation, use make.
+p := make(int) // typeof(p) is $*int. The int is on the heap. *p == 0.
 
-func foo() $*int {
-    var x int
-    return &x // x is heap allocated
+
+// The types of & and &* operators depend on the type of the variable they're stored in.
+i := 5
+var p *int = &i // borrows i
+
+j := 6
+var q $*int = &j // moves j into q. j is consumed.
+print(j)         // error: j was moved into q. It doesn't matter that j is copyable.
+j = 7
+print(j) // ok: j has been re-initialized.
+
+r := &8
+var s *int  = &*r    // borrows r
+var t $*int = &*r    // copies r
+var u $*int = &*s    // copies s – you can also copy a borrow
+
+
+// If a type isn't specified, & and &* have default types.
+i := 5    // typeof(i) == int
+p := &i   // typeof(p) == *int
+
+j := &5   // typeof(j) == $*int
+q := &*j  // typeof(q) == *int
+
+
+// Paremeter types and return types also determine the type of & and &* operators.
+func foo(p $*int) { ... }
+i := 5
+foo(&i) // i is heap allocated, ownership is transfered into p.
+
+func bar() $*int {
+    i := 5
+    return &5 // 5 is heap allocated, ownership is transfered to the caller
 }
 
-func bar($*int) { ... }
-func foo() {
-    var x int
-    bar(&x) // x is heap allocated
+func bad() *int {
+    i := 5
+    return &i // error: borrow of `i` outlives `i`.
 }
-
-
-// Taking the address of a literal works the same way. If it escapes, it's heap allocated, otherwise it's
-// stack allocated. Either way, the pointer is owned.
-var p $*int = &5
-p := &5
 
 // You can't borrow a literal value
 var p *int = &5 // error: you cannot borrow a literal
 
-// To force heap allocation, use make.
-p := make(int) // typeof(p) is $*int. The int is on the heap.
-
-
-// You can borrow an owned pointer.
-var x int
-p1 := ($*int)(&x)
-var p2 *int = p1
-
-// On the other hand, if a variable has been borrowed, it can't be moved into an owned pointer.
-var x int
-p1 := &x           // typeof p1 is *int
-var p2 $*int = &x  // error: p1 borrows x, so p2 can't own it.
+// If a variable has been borrowed, it can't be moved into an owned pointer.
+i := 5
+p1 := &i           // typeof(p1) == *int
+var p2 $*int = &i  // error: can't consume i while it is borrowed by p1
 
 
 // Passing pointers to C functions.
@@ -721,19 +796,19 @@ var p2 $*int = &x  // error: p1 borrows x, so p2 can't own it.
 // void inc(int *p);
 func inc(p !*int)
 
-// To call inc with a borrowed pointer, do the following.
+// To call inc with a borrowed pointer, do the following. You must ensure that p is not escaped.
 var x int
-p := &x    // typeof(p) is *int
-inc(p.!)
+p := &x    // typeof(p) == *int
+C.inc(p.!)
 
-// This also works with refcounted pointers. The reference count is not incremented.
+// This also works with refcounted pointers. The reference count is not incremented. P must not escape.
 p := rc(5) // typeof(p) is #*int
-inc(p.!)
+C.inc(p.!)
 
 // And weak pointers:
 p := rc(5)
 w := weak(p)
-inc(w.!)
+C.inc(w.!)
 
 // In all of these cases, you must ensure that the unsafe pointer doesn't outlive the value it points to. The
 // easiest way to do this is to make sure inc doesn't escape the pointer. If call a function that does escape
@@ -743,8 +818,17 @@ inc(w.!)
 // you free the memory later, it will be leaked. Freeing the memory can be tricky – it depends on what allocator
 // allocated the memory.
 p := &5
-inc(p.!) // $*int -> !*inc
-// p has leaked
+C.inc(p.!) // $*int -> !*inc
+print(p)   // error: p has been consumed
+
+// For the above to be correct, inc must free p using mem.DefaultAllocator.Free.
+
+// This is a more likely scenario:
+func allocatesUsingLibcMalloc() $*int
+p := allocatesUsingLibcMalloc()
+C.inc(p.!) // inc must call free(3) on p.
+
+
 
 // An unsafe pointer of any type can be used where an unsafe void pointer is expected.
 // void printptr(void *p);

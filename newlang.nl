@@ -1424,26 +1424,20 @@ defer C.free(s)
 
 
 
-// IDEAs:
+
+
+
+
+// Scratch
+
+
+
+
+// String ideas from Ori:
 // - Copy literals into writable memory if you mutate them
 // - Static strings are reference counted, but start with a refcount of 1.
 // - Sufficiently smart compiler that can leave out retains/releases in all the right cases.
 
-
-[5]int    // fixed size array
-[]int     // owned slice
-*[]int    // borrowed slice
-
-#*[]int   // reference counted slice. Slicing one of these returns another reference counted slice! This is Go semantics.
-
-[?]int    // flexible array member. Also, infer the size of the array from the initializer
-
-// Alt spelling of flexible array members
-
-struct foo {
-   len int
-   buf [.len]int
-}
 
 // Possible string design from Ori
 // There are no strings. String literals are just arrays.

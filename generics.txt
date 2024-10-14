@@ -1,7 +1,8 @@
 Ideas for generics
 
 1. If we have comptime, add Zig-style comptime generics.
-2. Instead of Go-style type sets, just add operators to interfaces:
+2. If possible, I don't want comptime. But even more than not having comptime, I want no seperate macro language. If we find a need for compile-time metaprogramming, something like comptime is probably the way. If we add generics, can we add them in a way so that a good comptime system would be purely additive and not require changing how generics work?
+3. Instead of Go-style type sets, just add operators to interfaces:
 
 type comparable interface {
     <, =

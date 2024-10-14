@@ -735,6 +735,35 @@ struct {
 }
 
 
+// Unsafe dynamic arrays.
+//
+// E.g. [!?]int. These are for interop with C's flexible array members. They can only appear as the final
+// field of a struct. This is unsafe because the compiler doesn't know how long value is, even at runtime.
+// This means it can't do bounds checking on value and can't use for range loops.
+//
+// len(m.value) is a compile error.
+struct msg {
+    type int
+    len int
+    value [!?]byte
+}
+
+n := 10
+sz := unsafe.SizeOf(msg) + n*unsafe.SizeOf(byte)
+m := C.malloc(sz).(!*msg) // typeof(m) == !*msg
+m.len = n
+// do stuff with m
+C.free(m)
+
+// TODO: is there a way to allocate a msg on the stack? Perhaps
+n := 10
+sz := unsafe.SizeOf(msg) + n*unsafe.SizeOf(byte)
+m := unsafe.Alloca(size).(!*msg)
+m.len = n
+// make sure not to free m, it's stack allocated.
+
+
+
 // Math
 
 // Arethmetic operators (+, -, *, /, %, etc.) are defined to trap on overflow (TODO: which ones?).
@@ -1250,34 +1279,6 @@ C.ldouble
 // be cast to a specific C type.
 //
 // TODO: how are C structs with bitfields imported?
-
-
-// Unsafe dynamic arrays.
-//
-// E.g. [!?]int. These are for interop with C's flexible array members. They can only appear as the final
-// field of a struct. This is unsafe because the compiler doesn't know how long value is, even at runtime.
-// This means it can't do bounds checking on value and can't use for range loops.
-//
-// len(m.value) is a compile error.
-struct msg {
-    type int
-    len int
-    value [!?]byte
-}
-
-n := 10
-sz := unsafe.SizeOf(msg) + n*unsafe.SizeOf(byte)
-m := C.malloc(sz).(!*msg) // typeof(m) == !*msg
-m.len = n
-// do stuff with m
-C.free(m)
-
-// TODO: is there a way to allocate a msg on the stack? Perhaps
-n := 10
-sz := unsafe.SizeOf(msg) + n*unsafe.SizeOf(byte)
-m := unsafe.Alloca(size).(!*msg)
-m.len = n
-// make sure not to free m, it's stack allocated.
 
 
 // Passing pointers to C functions.

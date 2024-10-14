@@ -14,6 +14,8 @@ uint128
 float16
 float32
 float64
+float80
+float128
 
 complex64
 complex128
@@ -35,6 +37,9 @@ C.int
 C.uint
 C.long
 C.ulong
+C.llong
+C.ullong
+C.ldouble
 
 // Bridging to C
 //

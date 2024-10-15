@@ -568,7 +568,10 @@ enum {
 // - Do we have frozen/non-frozen enums like Swift? In Swift, for non-frozen enums, which can have
 //   new cases added later, you need to have an "@unknown default" case when pattern matching.
 
-// IDEA: Combine enums into a larger enum that's a superset of each
+
+// You can combine enums into another enum that's a union of both.
+//
+// TODO: it should be easy to pattern match
 type enum valign {
     top
     bottom
@@ -582,6 +585,7 @@ type enum halign {
 type enum align {
     ...valign
     ...halign
+    center
 }
 
 

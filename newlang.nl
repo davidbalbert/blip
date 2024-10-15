@@ -568,6 +568,23 @@ enum {
 // - Do we have frozen/non-frozen enums like Swift? In Swift, for non-frozen enums, which can have
 //   new cases added later, you need to have an "@unknown default" case when pattern matching.
 
+// IDEA: Combine enums into a larger enum that's a superset of each
+type enum valign {
+    top
+    bottom
+}
+
+type enum halign {
+    left
+    right
+}
+
+type enum align {
+    ...valign
+    ...halign
+}
+
+
 // Bitwise option flags can't be enums because they're not disjoint.
 
 // One option: consts that work just like Go, including textual substitution and iota.

@@ -661,7 +661,7 @@ union {
 //
 // These are arrays (i.e. they're values, stored inline, and can't be resized), but their length is known only at runtime.
 //
-// TODO: is there a better name than "dynamic array"?
+// TODO: is there a better name than dynamic array? Perhaps runtime array?
 n := 5
 a := [n]int{}
 
@@ -734,6 +734,11 @@ struct {
     data2 [len1]int32
 }
 
+// Do we need a way to be "generic" over runtime arrays that's different from a slice? E.g. something like
+//
+// func foo(a [?]int) { ... }
+//
+// I can't think of any, but it's worth considering.
 
 // Unsafe dynamic arrays.
 //
@@ -742,6 +747,8 @@ struct {
 // This means it can't do bounds checking on value and can't use for range loops.
 //
 // len(m.value) is a compile error.
+//
+// TODO: add a way to annotate msg (or any struct declared in C) so that it's imported as a safe dynamic array.
 struct msg {
     type int
     len int

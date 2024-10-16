@@ -767,8 +767,8 @@ struct {
 // Unsafe dynamic arrays.
 //
 // E.g. [!?]int. These are for interop with C's flexible array members. They can only appear as the final
-// field of a struct. This is unsafe because the compiler doesn't know how long value is, even at runtime.
-// This means it can't do bounds checking on value and can't use for range loops.
+// field of a struct. This is unsafe because the compiler doesn't know how long the array is, even at runtime.
+// This means it can't do bounds checking and can't use for-range loops.
 //
 // len(m.value) is a compile error.
 //
@@ -893,6 +893,23 @@ func inc(p *int) {
 
 func divmod(a, b int) (int, int) {
     return a / b, a % b
+}
+
+
+// Defer
+
+// Defer blocks run at the end of the scope they're declared in, in reverse order from how they were declared.
+func getAndInc(p *int) int {
+    defer *p++
+    return *p
+}
+
+// Multi-line defers use an immediately invoked closure
+func deferWithFunc() {
+    defer func () {
+        // ...
+    }()
+    // ...
 }
 
 

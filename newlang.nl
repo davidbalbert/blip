@@ -990,6 +990,8 @@ func good() {
 
 
 // Error recovery (similar to Zig's errdefer). Consider a function that opens two files.
+//
+// In these examples, Fd is move-only.
 func bad(p1, p2 string) (Fd, Fd) | error {
     fd1, err := open(p1)
     if err != nil {

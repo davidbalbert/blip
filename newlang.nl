@@ -571,7 +571,7 @@ enum {
 
 // You can combine enums into another enum that's a union of both.
 //
-// TODO: it should be easy to pattern match
+// TODO: it should be easy to pattern match both on individual cases, but also on the embedded type.
 type enum valign {
     top
     bottom

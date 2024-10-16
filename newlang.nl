@@ -643,8 +643,11 @@ alias byte uint8
 // Non-copyable types are move-only. They must be escaped or explicitly consumed. Non-copyable types are
 // useful for types that manage resources and must be cleaned up later, like a net.Conn that ownes a
 // file descriptor.
-
-// TODO: Structs that contain owned pointers are non-copyable, but they don't have to be cleaned up.
+//
+// TODO: Non-copyable is no longer a good name for these. Any struct that has an owned pointer as one of
+// its fields or a field of one of its descendents is non-copyable. So we need a better name. These are
+// very similar to linear types, but more relaxed. Like linear types, these must be escaped or consumed,
+// but values of a linear type must be used exactly once, and these can be used multiple times.
 
 // If a type embeds a non-copyable type, it is also non-copyable. The type mem.NoCopy is a zero-sized
 // non-copyable type. C.f. structs.HostLayout in Go. To make a non-copyable struct, embed mem.NoCopy:

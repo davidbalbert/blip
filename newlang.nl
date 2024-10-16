@@ -689,7 +689,7 @@ union {
 n := 5
 a := [n]int{}
 
-// Dynamic arrays are useful for making a struct whose size is only known at runtime.
+// They can be embedded in structs
 type msg struct {
     type int
     len int

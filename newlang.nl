@@ -1044,7 +1044,13 @@ func withDefault() (int, int) {
 
 
 // Borrowed pointers and lifetime dependence
-
+//
+// NOTE: this is definitely not sound yet. I'm trying to get GC-level safety using a Rust-like (or Swift-like)
+// lifetime analysis. I want to find a way to do it without using generic lifetimes and subtyping like Rust,
+// even if we end up with less expresivity as a result. More importantly, I want all borrows to be mutable,
+// as opposed to Rust, Swift, and Safe C++'s single-writer xor multi-reader requirement. Doing this introduces
+// a bunch of aliasing issues that may not be tractable.
+//
 // The goal is to prevent use-after-free and double-free. In other words, to provide temporal safety.
 //
 // To start, all memory has a single owner. This owner is a variable that's responsible for freeing the

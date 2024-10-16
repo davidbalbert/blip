@@ -1067,7 +1067,7 @@ func withDefault() (int, int) {
 
 // Borrowed pointers and lifetime dependence
 //
-// NOTE: this is definitely not sound yet. I'm trying to get GC-level safety using a Rust-like (or Swift-like)
+// NOTE: this is definitely not sound yet. I'm trying to get GC-level safety using Rust-like (or Swift-like)
 // lifetime analysis. I want to find a way to do it without using generic lifetimes and subtyping like Rust,
 // even if we end up with less expresivity as a result. More importantly, I want all borrows to be mutable,
 // as opposed to Rust, Swift, and Safe C++'s single-writer xor multi-reader requirement. Doing this introduces
@@ -1127,7 +1127,7 @@ func max(a, b *int) res *int {
 // You can explicitly specify lifetimes if the result depends on only some of the arguments.
 // In this case, the lifetime of res is allowed to outlive the lifetime of b, but not a.
 func add(a, b *int) *int in a {
-    *a += b
+    *a += *b
     return a
 }
 
@@ -1140,6 +1140,12 @@ func foo(t *T, u *U, cond bool) *int {
 }
 
 // The rules are the same for methods. The receiver is treated as another argument.
+//
+// NOTE: Most other systems I've seen cause the lifetime of the return value to only depend on
+// the lifetime of the receiver (in this case, t). Rust, Swift, and Safe C++ all seem to have
+// different defaults. I'm not sure the above is the right choice, but I don't think any choice
+// limits expressivity – it's just about picking a good default that lets you leave off annotations
+// as much as possible.
 func (t *T) foo(u *U, cond bool) *int {
     if cond {
         return &t.x
@@ -1184,7 +1190,9 @@ func swap(a, b, *int) {
     *a, *b = *b, *a
 }
 
-// Should this be allowed directly, or do you have to specify `*int in package`?
+// Should this be allowed directly, or do you have to specify `*int in package`? AFAIKT, the only way for
+// a function with no arguments to return a borrow is if it's borrowing something that lives for the duration
+// of the entire program (i.e. a "static" or "package" lifetime).
 func alwaysNil() *int {
     return nil
 }
@@ -1194,7 +1202,7 @@ func alwaysNil() *int {
 // Options:
 // - perform escape analysis to determine that x should be heap allocated, and deallocated when the closure is dropped.
 // - error: the closure outlives x and therefore cannot capture its value directly.
-func caller() func() *int{
+func caller() func() *int {
     var x int
 
     return func() *int {
@@ -1225,9 +1233,8 @@ func foo() {
 }
 
 
-
-// A composite type with a borrowed pointer is considered borrowed. A composite type containing another composite type
-// is also borrowed and obeys the same rules as above.
+// A composite type with a borrowed pointer is considered borrowed (borrowing?). A composite type containing another
+// composite type is also borrowed and obeys the same rules as above.
 
 // Consider this struct
 type pair struct {

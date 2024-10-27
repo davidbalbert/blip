@@ -15,12 +15,11 @@ The most complete sketch is in [newlang.nl](https://github.com/davidbalbert/newl
 
 Name idea: people sometimes use chainmale gloves when cutting things on a mandolin. It lets you use the sharp tool more safely. This is what I want for the language. Maybe there's a name that evokes that.
 
-
-Rust and Swift are C++ replacements – too big. Zig is a C replacement, but it doesn't have any memory safety. Go is lots of fun, but GC makes it a bit too high level. CSP is great.
+Rust and Swift are like C++ – too big and not much fun. Zig is smaller, but doesn't have enough memory safety. Go is lots of fun, but GC isn't right for all software. CSP is great.
 
 Basically, I want to use Go for lower level things, but it's not quite suited to some of those.
 
-I want approximately the amount of memory safety/data race safety you get from Go, but without GC – zero values/no uninitialized variables, nil pointer dereference is well defined and will panic, default concurrency patterns (channels and goroutines) push you towards writing correct code without forcing it on you (there's still shared memory and locks if you want to shoot yourself in the foot). Doesn't have ironclad type level guarantees like Rust and Swift. It should just get you 90% of the way there.
+I want approximately the amount of memory safety you get from Go, but without GC – zero values/no uninitialized variables, nil pointer dereference is well defined and will panic, default concurrency patterns (channels and goroutines) push you towards writing correct code without forcing it on you (there's still shared memory and locks if you want to shoot yourself in the foot). Doesn't have ironclad type level guarantees like Rust and Swift. It should just get you 90% of the way there.
 
 Performance is an open question. One option: just as much speed and control as Rust, just with fewer ideas and abstractions. Maybe this is possible given the relaxed memory safety ideas above? Another option: 90% of the performance guarantees as Rust. We may already be doing this by using zero values.
 
@@ -39,9 +38,10 @@ Test cases:
     - Main thread restrictions?
 
 
-Notes:
+Notes (much of this is out of date):
 
 - C replacement (of course)
+    - https://www.humprog.org/~stephen/research/papers/kell17some-preprint.pdf
 - Smaller than Rust
 - Fun like Go
 	- Fast compile times
@@ -49,7 +49,7 @@ Notes:
 	- Mostly Imperative
 - CSP
 	- No growable stacks
-	- Statically allocate able stacks if necessary
+	- Statically allocate-able stacks if necessary
 	- Set stack size (global? per stack?)
 	- Interrupt handler??
 - No GC
@@ -88,7 +88,7 @@ Notes:
     - Default C layout? Or do you have to opt in?
 - Iteration
     - co-routine based iterators ("interior iteration")
-    - Like Ruby: be able to turn a co-routine based iterator into an Enumerable/Iterator ("exterior iteration").
+    - Like Ruby or Go: be able to turn a co-routine based iterator into an Enumerable/Iterator ("exterior iteration").
     - What about going back and forth? A cursor? Something else?
     - Swift-like slicing of arbitrary data structures?
 - Defer

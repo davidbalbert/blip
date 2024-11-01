@@ -33,18 +33,20 @@ uintptr
 
 // Pointers
 
-// There are 5 pointer types: owned, borrowed, unsafe, reference counted, and weak. All pointer types can be nil.
+// There are 6 pointer types: owned, borrowed, uniquely borrowed, unsafe, reference counted, and weak. All pointer types can be nil.
 // Dereferencing a nil pointer is defined behavior – it panics. All pointers besides unsafe pointers have temporal
 // safety – they prevent use-after-free.
 
 $*int       // owned
 *int        // borrowed
+(uniq *int) // uniquely borrowed
 !*int       // unsafe
 #*int       // reference counted
 (weak *int) // weak
 
 // Other possible spellings and pointer types
 ~*int // weak
+@*int, ^*int, |*int // unique borrow
 %*int // Non-null, if we add it. Would this be borrowed or owned? Would we need both? Can we get away without this?
 
 // Owned pointers

@@ -13,7 +13,7 @@ The most complete sketch is in [newlang.nl](https://github.com/davidbalbert/newl
 
 ## Details and stray thoughts
 
-Name idea: people sometimes use chainmale gloves when cutting things on a mandolin. It lets you use the sharp tool more safely. This is what I want for the language. Maybe there's a name that evokes that.
+Name idea: people sometimes use chain mail gloves when cutting things on a mandolin. It lets you use the sharp tool more safely. This is what I want for the language. Maybe there's a name that evokes that.
 
 Rust and Swift are like C++ – too big and not much fun. Zig is smaller, but doesn't have enough memory safety. Go is lots of fun, but GC isn't right for all software. CSP is great.
 

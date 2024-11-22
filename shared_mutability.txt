@@ -1,0 +1,166 @@
+There's a nasty bug in this code:
+
+func appendReset(s *[]int, p *int) {
+    append(s, *p)
+    *p = 0
+}
+
+If p points at an element of s, and append reallocates, p could become invalid. Use after free!
+
+So what should we do? One option is to copy Rust and enforce single writer multi reader. S would be a &mut Vec, and thus p would be guaranteed not to alias with s.
+
+But I don't love that approach. Specifically, I want to be able to write this:
+
+func swap(a, b *int) {
+    *b, *a = *a, *b
+}
+
+s := []int{1, 2}
+swap(&s[0], &s[1])
+
+In Rust, this is a compile error because &s[0] and &s[1] are both mutable borrows of s, and that's not allowed.
+
+But Rust is overly restrictive. The above code is safe. In a single threaded environment, it's not possible for s's storage to get reallocated during the call to swap.
+
+Is there a path forward? Yes! Ante allows for safe mutable aliasing: https://antelang.org/blog/safe_shared_mutability/. We'll do the same, but with our own twist.
+
+Two types of borrows:
+
+shared: *int
+unique: uniq *int // Alt: my *int
+
+Unique borrows must be statically known to not alias.
+
+s := []int{1, 2}
+var u (uniq *[]int) = &s
+var s1 *[]int = &s        // error: s is uniquely borrowed by u
+
+var b1 *[]int = &s        // error: s is uniquely borrowed by u
+var b2 *[]int = &u[0]     // error: u is unique and can't be borrowed
+
+On the other hand, shared borrows are fine:
+
+s := []int{1, 2}
+var s1 *[]int = &s
+var s2 *[]int = &s // ok!
+
+We can define append to take a unique slice:
+
+func append(slice uniq *[]T, v T) { ... }
+
+This means we can't append to a borrowed slice (which is a restriction we've already set out in the spec):
+
+s := []int{1, 2}
+append(&s, 3) // ok! s becomes unique
+
+s := []int{1, 2}
+s1 := &s      // *[]int
+append(&s, 3) // error: s1 borrows s, so &s cannot be unique.
+
+Annoyingly, the above is safe, but doesn't fit the model. We have two pointers to the slice, but no pointers into the slice.
+
+s := []int{1, 2}
+var s1 *[]int = &s
+append(s1, 3) // error: s1 is *[]int but expected uniq *[]int
+
+
+Ante is polymorphic on uniqueness. In Ante, there is &own T, and &shared T. But own isn't a subtype of shared. Instead, a function taking &T is polymorphic on uniquness. I think it might work like this, but I'm not sure.
+
+func foo(p *T) *T {}
+var p1 uniq *T = ...
+var p2 shared *T = ...
+
+typeof(foo(p1)) // uniq *T
+typeof(foo(p2)) // shared *T
+
+Or at least, I think it's something like that. Do we need it?
+
+
+
+## Some ideas about refcounted pointers
+
+uniq #*T // a #*T with a known refcount of 1. The `rc` builtin should return a uniq #*T
+
+A uniq #*T can be coerced into a uniq *T. E.g.
+
+s := #*[]int{1, 2} // typeof(s) == uniq #*[]int
+append(s, 3) // ok!
+
+It can also be borrowed explicitly:
+
+s := #*[]int{1, 2}
+b := &*s // typeof(b) == uniq *[]int
+
+If you borrow twice, it's shared:
+
+s := #*[]int{1, 2}
+b1 := &*s // typeof(b1) == *[]int
+b2 := &*s // ditto
+
+A non-uniq refcounted pointer can't be borrowed uniquely:
+
+s1 := #*[]int{1, 2} // typeof(s1) == #*[]int
+s2 := s1            // ditto
+append(s1, 3) // error: s1 is not unique.
+
+We need the equivalent of Arc::make_mut to give us a uniquely referenced thing.
+
+var s #*[]int = ...
+s1 := uniq(s)   // typeof(s1) == uniq #*[]int.
+b1 := &*uniq(s) // typeof(b1) == uniq *[]int.
+
+Both of these forms copy the underlying slice if necessary and update the `s` to point at the new data. In either form, s can't be used until the last use of s1 or b1. Alt: uniqify. You can also choose to shadow s:
+
+var s #*[]int = ...
+s := uniq(s)   // typeof(s1) == uniq #*[]int.
+s := &*uniq(s) // typeof(b1) == uniq *[]int.
+
+// Assetions. Panics if refcount != 1.
+var s #*[]int = ...
+s1 := s.(uniq)   // typeof(s1) == uniq #*[]int. Panics if refcount != 1. s can only be used after the last use of s1.
+append(s.(uniq), 3) // Ditto. Panics if refcount != 1.
+b1 := &*s.(uniq) // typeof(b1) == uniq *[]int. Panics if refcount == 1
+
+
+Do we need an equivalent of Arc::get_mut?
+
+var s #*[]int = ...
+s1, ok := s.(uniq)   // typeof(s1) == uniq #*[]int. If refcount != 1, s1 == nil and ok == false.
+b1, ok := &*s.(uniq) // typeof(b1) == uniq *[]int. Ditto.
+
+
+
+## Having our cake and eating it too
+
+Is there another point in the design space where typeof(&s[5]) == *int and append takes an *[]int? Here's an unsound sketch, but it's a start.
+
+func append(s *[]T, v T) // append takes a shared pointer
+func swap(a *T, b *T)
+
+s := []int{1, 2}
+append(&s, 3) // typeof(&s) == *[]int
+
+p1 := &s[0] // typeof(p1) == *int
+p2 := &s[1]
+swap(p1, p2)
+
+append(&s, 4)
+// don't use p1 or p2 after this point
+
+There aren't any problems here. Could this work? If borrowing through a pointer (e.g. &s[1]) temporarily made typeof(s) == const []int until p1 and p2 were dropped, then maybe this could work?
+
+A problem:
+
+func bad(a, b *[]int) {
+    p := &a[0]
+    append(b, 10) // if a and b alias, p could dangle.
+}
+
+s := []int{1, 2}
+s1 := &s
+s2 := &s
+
+bad(s1, s2) // no good! We don't have any guarantees that a and b don't alias.
+
+It's probably not worth the squeeze. A slice needs to be uniq in order to append
+.

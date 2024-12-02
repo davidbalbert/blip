@@ -1281,6 +1281,9 @@ type pair struct {
 // Ideas for array programming, SIMD, etc.
 
 // Arrays (of the same size? what about slices?) be operated on like J or APL, only using wrapping operators.
+//
+// TODO: if ".op" means broadcast, then maybe this should just be "+". But if .+ means "without overflow checking"
+// than this should be ".+". Maybe there's a better way.
 [3]int{1, 2, 3} .+ [3]int{4, 5, 6} // [3]int{5, 7, 9}
 
 // You can also operate on arrays with scalars. The scalar can be on either side of the operator.

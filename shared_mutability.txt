@@ -106,10 +106,12 @@ append(s1, 3) // error: s1 is not unique.
 We need the equivalent of Arc::make_mut to give us a uniquely referenced thing.
 
 var s #*[]int = ...
-s1 := uniq(s)   // typeof(s1) == uniq #*[]int.
-b1 := &*uniq(s) // typeof(b1) == uniq *[]int.
+s1 := uniqify(s)   // typeof(s1) == uniq #*[]int.
+b1 := &*uniqify(s) // typeof(b1) == uniq *[]int.
 
-Both of these forms copy the underlying slice if necessary and update the `s` to point at the new data. In either form, s can't be used until the last use of s1 or b1. Alt: uniqify. You can also choose to shadow s:
+Both of these forms copy the underlying slice if necessary and update the `s` to point at the new data. In either form, s can't be used until the last use of s1 or b1. Alt: unshare, mint, forge, my, mine, sever, cut, dislodge, rend, unleash. I really like how succinct mint is. But creating a coin doesn't mean it's unique. And it is also a noun, which can be confusing. Maybe I can find something else.
+
+You can also choose to shadow s:
 
 var s #*[]int = ...
 s := uniq(s)   // typeof(s1) == uniq #*[]int.
@@ -162,5 +164,4 @@ s2 := &s
 
 bad(s1, s2) // no good! We don't have any guarantees that a and b don't alias.
 
-It's probably not worth the squeeze. A slice needs to be uniq in order to append
-.
+It's probably not worth the squeeze. A slice needs to be uniq in order to append.

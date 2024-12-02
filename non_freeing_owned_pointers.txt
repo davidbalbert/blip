@@ -1,0 +1,19 @@
+Thinking in collections/RAII/etc
+
+https://kristoff.it/blog/raii-rust-linux/
+
+Memory is a different type of resource than all the others (e.g. a file descriptor). Because memory can be freed in bulk.
+
+Consider getting rid of a huge array of Files. Each File owns a file descriptor (a resource). Best case is N calls to close(2) and one call to free(3).
+
+Consider this function:
+
+func (f $*File) Close() {}
+
+It takes ownership of f because we want to consume it, but that doesn't mean we want this function to free f's memory.
+
+A principle: whether a value is consumed and when it's freed are independent. Here, we take an owned pointer in order to prevent future uses of f.
+
+An idea: an owned pointer doesn't have to free. Either the free function (2nd word) could be nil, or the pointer itself has some sort of tag. No matter how you do it, you should be able to take ownership of a linear type (need a better name for mem.NoCopy, mem.Explicit, mem.NoDrop?) for the purpose of enforcing cleanup without forcing the compiler to do a bunch of small allocations.
+
+A question: What about a tree made up of owned pointers to nodes? It would be nice to have something that feels natural (like that), but where memory could be freed all at once.

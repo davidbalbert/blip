@@ -86,7 +86,7 @@ type op enum {
 
 // variables
 x := op.add
-var x op = op.add // maybe op:add? 
+var x op = op.add // maybe op:add?
 var x op = add
 
 // given this function
@@ -143,7 +143,7 @@ void Perform(Op op);
 // But this means that Perform could receive values that it doesn't expect. Two choices:
 // 1. All `switches` over enums are well defined if they receive an unexpected value. There's an implicit
 //    `default` case that panics.
-// 2. The C version of Perform is a wrapper around the Newlang version that Panics.
+// 2. The C version of Perform is a wrapper around the Blip version that Panics.
 // 3. We can't export any functions that take enums as arguments.
 
 // I think the first option is the best. It's useful to export enums to C, and undefined behavior is bad.

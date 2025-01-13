@@ -1,7 +1,7 @@
 // One of our goals is "Perfect C interop". What does this mean?
 //
-// 1. Call any C function from Newlang with minimal ceremony.
-// 2. Call any Newlang function from C. Possibly even functions that take non-bridgable types like
+// 1. Call any C function from Blip with minimal ceremony.
+// 2. Call any Blip function from C. Possibly even functions that take non-bridgable types like
 //    tagged unions.
 //    - Automatic header generation.
 // 3. Exist as a peer to C rather than a above it. The compiler should be able to generate .o files
@@ -9,7 +9,7 @@
 // 4. Easily convert unsafe C pointers (!*T) into the correct smart pointer type.
 //    - Wrap foreign reference counted types in a #*T, including support for auto-niling weak pointers.
 //    - Cast !*T to $*T with a custom free function, so that the value can be disposed of appropriately.
-//    - Mark external types as NoCopy so Newlang can enforce cleanup.
+//    - Mark external types as NoCopy so Blip can enforce cleanup.
 // 5. A text format for out of band annotations of C declarations so they get imported with smart
 //    pointer types.
 //    - Maybe also include regexes so that we can annotate a bunch of functions at once, e.g. to apply
@@ -28,7 +28,7 @@
 //    - Memory mapped registers at known addresses
 //    - Memory populated by the OS, e.g. Linux vDSO, the auxiliary vector, etc.
 // 9. No need to use any of the above safety features. You should be able to just call C functions as
-//    they are, with no Newlang interop affordances. The code will be unsafe – you have to enforce
+//    they are, with no Blip interop affordances. The code will be unsafe – you have to enforce
 //    whatever invariants exist manually – but that's ok.
 //
 // For inspiration, see "Some Were Meant for C" - https://www.humprog.org/~stephen/research/papers/kell17some-preprint.pdf

@@ -1,4 +1,4 @@
-# Newlang
+# Blip
 
 A sketch for a new systems programming language to replace C.
 
@@ -7,9 +7,7 @@ A sketch for a new systems programming language to replace C.
 - Smaller than Rust
 - Perfect C interop
 
-The most complete sketch is in [newlang.nl](https://github.com/davidbalbert/newlang/blob/main/newlang.nl).
-
-"Newlang" is a placeholder.
+The most complete sketch is in [blip.b](https://github.com/davidbalbert/blip/blob/main/blip.b).
 
 ## Details and stray thoughts
 

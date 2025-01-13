@@ -31,7 +31,7 @@ var x ?*int // An optional pointer to an int. nilable. Can be passed to C.
 // What is p? Is it an unsafe pointer? Or are we performing an unsafe operation on a pointer.
 //
 // I feel like it might be the latter. If C functions can take and return normal (non-unsafe) pointers,
-// which are just nil-checked in Newlang land, then as far as I can tell there's no need for (unsafe *int).
+// which are just nil-checked in Blip land, then as far as I can tell there's no need for (unsafe *int).
 // Just an unsafe cast that consumes the pointer.
 func free(x : !*int) {
     p = (unsafe *void) x;

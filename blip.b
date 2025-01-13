@@ -17,8 +17,11 @@ float64
 float80
 float128
 
+complex32
 complex64
 complex128
+complex160
+complex256
 
 // A single Unicode code point.
 rune (int32)
@@ -199,9 +202,13 @@ struct {
 
 // You can make a weak reference using the weak builtin
 //
+// TODO: I'd love to be able to get rid of weak pointers entirely and just use borrows. I think we can't do
+// that though. If you have a struct with a borrow of a refcounted pointer, and that struct is deallocated,
+// you need to
+//
 // TODO: how to make weak references to custom refcounted pointers? We need to know when the refcount reaches 0
 // so we can nil out the weak pointers. One option: weak pointers could be nil'd out as soon as the number of
-// #*T pointers (i.e. the number of strong references from Newlang code) drops to 0. This is a bit ugly though:
+// #*T pointers (i.e. the number of strong references from Blip code) drops to 0. This is a bit ugly though:
 // if some C code is holding a strong reference, the weak pointer will be nil'd out even though the object is
 // still alive.
 func weak(p #*T) (weak *T)
@@ -381,7 +388,7 @@ s2 := &*s[1:] // typeof(s2) == *[]int.
 // in the length, but the null terminator is not. If a string with a user-inserted null byte at index i is
 // passed to a C function, the C function will see a string of length i.
 //
-// Newlang source files are always UTF-8 encoded. By default, string literals are UTF-8 encoded. You can change
+// Blip source files are always UTF-8 encoded. By default, string literals are UTF-8 encoded. You can change
 // the encoding of string literals using a compiler flag. This is to support better C interop on systems where
 // the default encoding is not UTF-8.
 //

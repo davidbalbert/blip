@@ -19,7 +19,7 @@ type Bar struct {}
 func foo() {}
 type bar struct {}
 
-// Exported types are exported both to other Newlang packages as well as to C via a generated header.
+// Exported types are exported both to other Blip packages as well as to C via a generated header.
 // From this, it follows that any exported type or function must use the C ABI. Internal types which
 // are only visible from within a single package, including closures, are free to use whatever calling
 // convention they see fit. Because a package is always compiled as a unit, different source files in

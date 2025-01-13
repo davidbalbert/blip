@@ -10,7 +10,7 @@ How to do this?
 - Track all allocations including nested allocations (e.g. malloc inside mmap)
 - add metadata at the beginning of each allocation (or elsewhere)
 - functions that take any pointer type take a second argument describing that pointer’s extent
-- exported C functions wrap the Newlang function and pass in nil (or another sentinel value) that signals to Newlang that it can’t perform a bounds check
+- exported C functions wrap the Blip function and pass in nil (or another sentinel value) that signals to Blip that it can’t perform a bounds check
 
 Questions:
 - how to deal with custom allocators? If we have a slab allocator, the whole point is to have a bunch of known-sized objects right next to each other. Make() could still ask the allocator for a bit more space, but that might mess up alignment and give people less control of their memory.
@@ -31,3 +31,27 @@ Ideas:
 Resources:
 - https://www.cis.upenn.edu/~stevez/papers/KHM+15.pdf
 - https://www.ralfj.de/blog/2018/07/24/pointers-and-bytes.html
+
+
+type pair struct {
+    x, y *int
+}
+
+x := 5
+y := 6
+p := pair{&x, &y}
+
+func foo(p *pair, n *int) {
+    *p = pair{}
+    *n
+}
+
+type intslice {
+    nums []int
+}
+
+func (s *intslice) append(i *int) {
+
+}
+
+s := intslice{[]int{1, 2, 3}} // len

@@ -64,6 +64,26 @@ var s1 *[]int = &s
 append(s1, 3) // error: s1 is *[]int but expected uniq *[]int
 
 
+What's the actual rule here? What is the restriction that would require myappend(*MySlice) to be unique? You can't reassign a pointer on a shared borrow:
+
+type MySlice struct {
+    len, cap int
+    data $*T
+}
+
+func append(s *MySlice, T) {
+    if (s.len == s.cap) {
+        s.data == realloc() // error: can't assign an owned pointer through s because s is not unique.
+    }
+    // do the append
+}
+
+Ditto for nested assignments.
+
+I think assigning to a borrow is ok because it's not keeping the memory alive. Gotta think through refcounted pointers.
+
+
+
 Ante is polymorphic on uniqueness. In Ante, there is &own T, and &shared T. But own isn't a subtype of shared. Instead, a function taking &T is polymorphic on uniquness. I think it might work like this, but I'm not sure.
 
 func foo(p *T) *T {}
@@ -74,6 +94,14 @@ typeof(foo(p1)) // uniq *T
 typeof(foo(p2)) // shared *T
 
 Or at least, I think it's something like that. Do we need it?
+
+A rule:
+
+If all borrows passed as arguments are uniq, the return value is uniq. Otherwise, it's shared. For functions taking both
+shared an uniq borrows, you can annotate the return value with uniq – the compiler will ensure you don't return a shared
+borrow.
+
+TODO: what about types containing borrows.
 
 
 
@@ -106,16 +134,14 @@ append(s1, 3) // error: s1 is not unique.
 We need the equivalent of Arc::make_mut to give us a uniquely referenced thing.
 
 var s #*[]int = ...
-s1 := uniqify(s)   // typeof(s1) == uniq #*[]int.
-b1 := &*uniqify(s) // typeof(b1) == uniq *[]int.
+s1 := unshare(s)   // typeof(s1) == uniq #*[]int.
 
-Both of these forms copy the underlying slice if necessary and update the `s` to point at the new data. In either form, s can't be used until the last use of s1 or b1. Alt: unshare, mint, forge, my, mine, sever, cut, dislodge, rend, unleash. I really like how succinct mint is. But creating a coin doesn't mean it's unique. And it is also a noun, which can be confusing. Maybe I can find something else.
+Unshare copies the underlying slice. `s1` points at new data. Alt: uniqify, mint, forge, my, mine, sever, cut, dislodge, rend, unleash, mkuniq, uniq (might cause parsing problems).
 
 You can also choose to shadow s:
 
 var s #*[]int = ...
-s := uniq(s)   // typeof(s1) == uniq #*[]int.
-s := &*uniq(s) // typeof(b1) == uniq *[]int.
+s := unshare(s)   // typeof(s1) == uniq #*[]int.
 
 // Assetions. Panics if refcount != 1.
 var s #*[]int = ...
@@ -129,39 +155,3 @@ Do we need an equivalent of Arc::get_mut?
 var s #*[]int = ...
 s1, ok := s.(uniq)   // typeof(s1) == uniq #*[]int. If refcount != 1, s1 == nil and ok == false.
 b1, ok := &*s.(uniq) // typeof(b1) == uniq *[]int. Ditto.
-
-
-
-## Having our cake and eating it too
-
-Is there another point in the design space where typeof(&s[5]) == *int and append takes an *[]int? Here's an unsound sketch, but it's a start.
-
-func append(s *[]T, v T) // append takes a shared pointer
-func swap(a *T, b *T)
-
-s := []int{1, 2}
-append(&s, 3) // typeof(&s) == *[]int
-
-p1 := &s[0] // typeof(p1) == *int
-p2 := &s[1]
-swap(p1, p2)
-
-append(&s, 4)
-// don't use p1 or p2 after this point
-
-There aren't any problems here. Could this work? If borrowing through a pointer (e.g. &s[1]) temporarily made typeof(s) == const []int until p1 and p2 were dropped, then maybe this could work?
-
-A problem:
-
-func bad(a, b *[]int) {
-    p := &a[0]
-    append(b, 10) // if a and b alias, p could dangle.
-}
-
-s := []int{1, 2}
-s1 := &s
-s2 := &s
-
-bad(s1, s2) // no good! We don't have any guarantees that a and b don't alias.
-
-It's probably not worth the squeeze. A slice needs to be uniq in order to append.

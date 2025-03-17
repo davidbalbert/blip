@@ -155,3 +155,41 @@ Do we need an equivalent of Arc::get_mut?
 var s #*[]int = ...
 s1, ok := s.(uniq)   // typeof(s1) == uniq #*[]int. If refcount != 1, s1 == nil and ok == false.
 b1, ok := &*s.(uniq) // typeof(b1) == uniq *[]int. Ditto.
+
+
+## Affinity (TODO: better name)
+
+Two types of values:
+
+single-use: once Foo
+multi-use:  many Foo
+
+A `once` value can be used zero or one times. A `many` value can be used any number of times. `many` is a
+subtype of `once` – a `many` can be put into a `once` slot, but a `once` can't be put into a `many` slot.
+(TODO: polymorphism instead of subtyping).
+
+This is useful for closures. Below, `map` needs to be able to call `f` multiple times, so `f` must be `many`.
+
+func map[T, U](slice *[T], f many func (T) U) [U]
+
+A closure that captures a `uniq` value must be `once`. `Uniq` values are owned pointers ($*Foo), and any values
+that are linear (must cleanup) or nocopy.
+
+The fields of a `uniq` value are `uniq`.
+
+`Many` closures can only contain copyable values and `shared` references.
+
+Copyable values are always `uniq`. A borrow can be `uniq` or `shared`. Newly created reference counted pointers are
+`uniq` because they're known to have a reference count of 1.
+
+Copyable values are always `many` unless specified. No-copy is a synonym for `once` (TODO: unify these terms), so
+no-copy values can never be `many`. A borrow is `many` by definition – one of the points of borrowing is using a
+`once` thing multiple times. (TODO: is there a need for a `once` borrow? function pointers maybe?).
+
+Non-closures (function pointers) are `many` unless they manipulate a `once` value.
+
+Alt:
+
+    linear Foo
+    once Foo
+    many Foo

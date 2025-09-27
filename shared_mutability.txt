@@ -193,3 +193,9 @@ Alt:
     linear Foo
     once Foo
     many Foo
+
+Idea: a `once` function (not closures) can safely declare static variables and get
+a unique reference to them. Because functions are global, a once function can only
+be accessed by name from main() or init() (which are implicitly once functions). 
+To call a once function from some other functiom, it must be passed down as
+an argument. 

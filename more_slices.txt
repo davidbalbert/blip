@@ -1,0 +1,94 @@
+a := [5]int{1, 2, 3, 4, 5}
+
+
+Options for slices:
+
+1. A slice is pointer + len.
+
+
+
+// []T
+type slice[T] struct {
+    len, cap int
+    values $*T
+}
+
+s := slices.New[int](1, 2, 3, 4, 5) // slice[T]
+
+
+// *[]T
+type borrowedSlice[T] struct {
+    len int
+    values *T
+}
+
+// uniq *[]T
+type uniqueBorrowedSlice[T] *slice[T]
+
+// Option 1
+//
+// How should I think of []Type here? A special type of pointer?
+// Passing it transfers ownership, but it doesn't copy the data.
+func append(slice []Type, elems ...Type) []Type {
+    // ...
+}
+
+// Option 2
+func append(slice uniq *[]Type, elems ...Type) {
+    // ...
+}
+
+What can you do if you have a unique pointer to a type that
+owns memory?
+
+// Foo is move only because it owns memory.
+type Foo struct {
+    bar $*int
+}
+
+f1 := NewFoo(5) // uniq *Foo
+f2 := *f1       // error: Foo is non-copyable.
+f3 := &*f1      // *Foo, f1 is no longer uniq
+
+type Foo struct {
+    bar: *Bar
+}
+
+
+package mem
+
+type NoCopy struct {
+    _ uniq struct{}
+}
+
+fd1 := uniq int
+
+can/must
+
+var fd must uniq int := open("log.txt")
+
+type Fd (never shared) int
+
+type Fd !copy int
+type Fd nocopy int
+
+type Fd !int
+
+type Fd !struct { ... }
+
+
+type Fd nocopy struct { ... }
+
+fn NewConn(fd *Fd) *Conn {
+}
+
+fn printAndGet(s string) string {
+    print(s)
+    return s
+}
+
+fn
+
+modes are deep. modalities overwrite the deepness
+a copy of a copyable type is always uniq
+a uniq thing can always become shared

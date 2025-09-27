@@ -4,58 +4,62 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
+
+	"github.com/davidbalbert/blip/lex"
 )
 
-// Data-oriented design: focus on data and transformations
-// Program represents the minimal AST - just an integer for now
-type Program struct {
-	ExitCode int
-}
+func gen(content []byte) []string {
+	var insns []string
+	insns = append(insns, ".global _main")
+	insns = append(insns, ".align 2")
+	insns = append(insns, "")
+	insns = append(insns, "_main:")
 
-// Assembly represents generated assembly instructions
-type Assembly struct {
-	Instructions []string
-}
+	lexer := lex.NewLexer(content)
+	operation := '+'
+	firstValue := true
 
-// parseProgram reads source file and extracts the integer
-func parseProgram(filename string) (Program, error) {
-	content, err := os.ReadFile(filename)
-	if err != nil {
-		return Program{}, err
+	for {
+		token := lexer.NextToken()
+		tokenType := token.Type()
+
+		if tokenType == lex.TokEOF {
+			break
+		}
+
+		switch tokenType {
+		case lex.TokInt:
+			start := token.Pos()
+			end := start
+			for end < uint32(len(content)) && isDigit(content[end]) {
+				end++
+			}
+			value := string(content[start:end])
+			if firstValue {
+				insns = append(insns, "    mov x0, #"+value)
+				firstValue = false
+			} else if operation == '+' {
+				insns = append(insns, "    add x0, x0, #"+value)
+			} else {
+				insns = append(insns, "    sub x0, x0, #"+value)
+			}
+		case lex.TokAdd:
+			operation = '+'
+		case lex.TokSub:
+			operation = '-'
+		case lex.TokInvalid:
+		}
 	}
 
-	// For now, the entire program is just one integer
-	text := strings.TrimSpace(string(content))
-	exitCode, err := strconv.Atoi(text)
-	if err != nil {
-		return Program{}, err
-	}
+	insns = append(insns, "    mov x16, #1")
+	insns = append(insns, "    svc #0x80")
 
-	return Program{ExitCode: exitCode}, nil
+	return insns
 }
 
-// generateARM64 transforms program data into ARM64 assembly data
-func generateARM64(program Program) Assembly {
-	var instructions []string
-
-	// ARM64 assembly to exit with the given code
-	instructions = append(instructions, ".global _main")
-	instructions = append(instructions, ".align 2")
-	instructions = append(instructions, "")
-	instructions = append(instructions, "_main:")
-	instructions = append(instructions, "    mov x0, #"+strconv.Itoa(program.ExitCode))
-	instructions = append(instructions, "    mov x16, #1") // sys_exit
-	instructions = append(instructions, "    svc #0x80")   // system call
-
-	return Assembly{Instructions: instructions}
-}
-
-// writeAssembly outputs assembly data to file
-func writeAssembly(filename string, assembly Assembly) error {
-	content := strings.Join(assembly.Instructions, "\n") + "\n"
-	return os.WriteFile(filename, []byte(content), 0644)
+func isDigit(ch byte) bool {
+	return ch >= '0' && ch <= '9'
 }
 
 func main() {
@@ -66,14 +70,12 @@ func main() {
 
 	sourceFile := os.Args[1]
 
-	// Read and parse source
-	program, err := parseProgram(sourceFile)
+	content, err := os.ReadFile(sourceFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Parse error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Read error: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Create temp directory for compilation
 	tempDir, err := os.MkdirTemp("", "blip-*")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Temp dir error: %v\n", err)
@@ -81,12 +83,12 @@ func main() {
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Generate assembly in temp directory
 	baseName := strings.TrimSuffix(filepath.Base(sourceFile), ".bl")
 	asmFile := filepath.Join(tempDir, baseName+".s")
-	
-	asm := generateARM64(program)
-	err = writeAssembly(asmFile, asm)
+
+	insns := gen(content)
+	asm := strings.Join(insns, "\n") + "\n"
+	err = os.WriteFile(asmFile, []byte(asm), 0644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Write error: %v\n", err)
 		os.Exit(1)

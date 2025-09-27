@@ -47,6 +47,9 @@ type Assembly struct {
 - Clean data transformations: source text → Program → Assembly → file output
 - Data-oriented approach: compact structs, cache-friendly memory layout, CPU-sympathetic design
 
+## Code Style
+- **Comments**: Leave no unnecessary comments. Only write comments where the code would be unclear without them. Comments should never repeat what the code does - they should explain context that's necessary to understand the code, and only if it's actually necessary.
+
 ## Future Plans
 - Expand language syntax beyond single integers
 - Support multiple target architectures

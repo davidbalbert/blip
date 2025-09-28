@@ -19,16 +19,16 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 
 ## File Extensions & Workflow
 - **Source**: `.bl` files
-- **Generated**: `.o` object files (in current directory)
-- **Build chain**: `test.bl` → `test.bl.o` → `test` (executable)
+- **Generated**: `.o` object files (during testing)
+- **Testing**: All compilation and execution testing is automated via Go tests
 
 ## Target Platforms
 - **Current**: ARM64 on macOS
 - **Planned**: x86-64 on macOS and Linux, ARM64 on Linux
 
 ## Key Commands
-- **Compile**: `go run . <source.bl>`
-- **Full build**: `./blip source.bl && ld source.bl.o -o executable -lSystem -syslibroot $(xcrun --show-sdk-path) -e _main`
+- **Test**: `go test ./...` (all tests are automated)
+- **Build**: `go build -o blip ./cmd/compile`
 
 ## Technical Notes
 - Generates object files directly without assembly intermediate step

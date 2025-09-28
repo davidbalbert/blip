@@ -12,14 +12,12 @@ import (
 func Codegen(nodes []parse.Node, tokens []lex.Token, text []byte) []byte {
 	gen := arm64.Generator{}
 
-	// Walk the parse tree and generate code
-	// For now, we'll traverse the nodes and handle the arithmetic expression
 	ctx := &codegenContext{
-		gen:        &gen,
-		nodes:      nodes,
-		tokens:     tokens,
-		text:       text,
-		firstValue: true,
+		gen:    &gen,
+		nodes:  nodes,
+		tokens: tokens,
+		text:   text,
+		depth:  0,
 	}
 
 	ctx.walkNodes()
@@ -32,81 +30,62 @@ func Codegen(nodes []parse.Node, tokens []lex.Token, text []byte) []byte {
 }
 
 type codegenContext struct {
-	gen        *arm64.Generator
-	nodes      []parse.Node
-	tokens     []lex.Token
-	text       []byte
-	firstValue bool
-	nodeIndex  int
+	gen    *arm64.Generator
+	nodes  []parse.Node
+	tokens []lex.Token
+	text   []byte
+	depth  int // operand stack depth
 }
 
 func (ctx *codegenContext) walkNodes() {
-	for ctx.nodeIndex < len(ctx.nodes) {
-		ctx.processNode()
+	for _, node := range ctx.nodes {
+		ctx.processNode(node)
 	}
 }
 
-func (ctx *codegenContext) processNode() {
-	if ctx.nodeIndex >= len(ctx.nodes) {
-		return
-	}
-
-	node := ctx.nodes[ctx.nodeIndex]
-	ctx.nodeIndex++
-
+func (ctx *codegenContext) processNode(node parse.Node) {
 	switch node.Kind {
 	case parse.NodeExpression:
-		// Bracketing node - just process children that follow
+		// Bracketing node - no code generated
 		return
 
 	case parse.NodeInt:
-		// Generate code for integer literal
 		token := ctx.tokens[node.Token]
 		value := ctx.getIntValue(token)
 
-		if ctx.firstValue {
-			ctx.gen.MovImm(0, value) // mov x0, #value
-			ctx.firstValue = false
+		if ctx.depth == 0 {
+			// First operand goes to x0
+			ctx.gen.MovImm(0, value)
+		} else {
+			// Push current x0 to stack, load new value
+			ctx.gen.PushReg(0)
+			ctx.gen.MovImm(0, value)
 		}
+		ctx.depth++
 
 	case parse.NodeAdd:
-		// Binary add - right operand is on stack, left operand in x0
-		// Process right operand (it's the previous node due to postorder)
-		rightNode := ctx.nodes[ctx.nodeIndex-2] // -1 for current, -1 for right operand
-		if rightNode.Kind == parse.NodeInt {
-			rightToken := ctx.tokens[rightNode.Token]
-			rightValue := ctx.getIntValue(rightToken)
-			ctx.gen.AddImm(0, 0, rightValue) // add x0, x0, #rightValue
-		}
+		// Pop left operand into x1, right is in x0
+		ctx.gen.PopReg(1)    // left operand
+		ctx.gen.Add(0, 1, 0) // x0 = x1 + x0
+		ctx.depth--
 
 	case parse.NodeSub:
-		// Binary sub - similar to add
-		rightNode := ctx.nodes[ctx.nodeIndex-2]
-		if rightNode.Kind == parse.NodeInt {
-			rightToken := ctx.tokens[rightNode.Token]
-			rightValue := ctx.getIntValue(rightToken)
-			ctx.gen.SubImm(0, 0, rightValue) // sub x0, x0, #rightValue
-		}
+		// Pop left operand into x1, right is in x0
+		ctx.gen.PopReg(1)    // left operand
+		ctx.gen.Sub(0, 1, 0) // x0 = x1 - x0
+		ctx.depth--
 
 	case parse.NodeMul:
-		// Binary mul - load right operand into register and multiply
-		rightNode := ctx.nodes[ctx.nodeIndex-2]
-		if rightNode.Kind == parse.NodeInt {
-			rightToken := ctx.tokens[rightNode.Token]
-			rightValue := ctx.getIntValue(rightToken)
-			ctx.gen.MovImm(1, rightValue) // mov x1, #rightValue
-			ctx.gen.Mul(0, 0, 1)          // mul x0, x0, x1
-		}
+		// Pop left operand into x1, right is in x0
+		ctx.gen.PopReg(1)    // left operand
+		ctx.gen.Mul(0, 1, 0) // x0 = x1 * x0
+		ctx.depth--
 
 	case parse.NodeDiv:
-		// Binary div - load right operand into register and divide
-		rightNode := ctx.nodes[ctx.nodeIndex-2]
-		if rightNode.Kind == parse.NodeInt {
-			rightToken := ctx.tokens[rightNode.Token]
-			rightValue := ctx.getIntValue(rightToken)
-			ctx.gen.MovImm(1, rightValue) // mov x1, #rightValue
-			ctx.gen.Div(0, 0, 1)          // sdiv x0, x0, x1
-		}
+		// Pop left operand into x1, right is in x0
+		ctx.gen.PopReg(1)    // left operand
+		ctx.gen.Div(0, 1, 0) // x0 = x1 / x0
+		ctx.depth--
 	}
 }
 

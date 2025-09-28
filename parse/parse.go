@@ -72,12 +72,6 @@ func (p *Parser) addNode(kind NodeKind, tokenIndex int, subtreeStart int) {
 	})
 }
 
-// Parser for arithmetic expressions with proper precedence
-// Grammar:
-//
-//	addExpr = mulExpr (('+' | '-') mulExpr)*
-//	mulExpr = intExpr (('*' | '/') intExpr)*
-//	int = INT
 func (p *Parser) parseAddExpr() {
 	subtreeStart := len(p.nodes)
 
@@ -90,6 +84,8 @@ func (p *Parser) parseAddExpr() {
 
 	// Parse additional multiplicative expressions with operators
 	for p.currentTokenType() == lex.TokAdd || p.currentTokenType() == lex.TokSub {
+		leftStart := subtreeStart + 1 // Start after bracketing node
+
 		opType := p.currentTokenType()
 		opToken := p.pos
 		p.consume() // consume operator
@@ -99,18 +95,15 @@ func (p *Parser) parseAddExpr() {
 
 		// Emit operator node in postorder (children already emitted)
 		if opType == lex.TokAdd {
-			p.addNode(NodeAdd, opToken, subtreeStart)
+			p.addNode(NodeAdd, opToken, leftStart)
 		} else {
-			p.addNode(NodeSub, opToken, subtreeStart)
+			p.addNode(NodeSub, opToken, leftStart)
 		}
-
-		// Update subtreeStart for next operator
-		subtreeStart = len(p.nodes) - 1
 	}
 }
 
 func (p *Parser) parseMulExpr() {
-	subtreeStart := len(p.nodes)
+	leftStart := len(p.nodes)
 
 	// Parse first primary
 	p.parseInt()
@@ -126,13 +119,10 @@ func (p *Parser) parseMulExpr() {
 
 		// Emit operator node in postorder (children already emitted)
 		if opType == lex.TokMul {
-			p.addNode(NodeMul, opToken, subtreeStart)
+			p.addNode(NodeMul, opToken, leftStart)
 		} else {
-			p.addNode(NodeDiv, opToken, subtreeStart)
+			p.addNode(NodeDiv, opToken, leftStart)
 		}
-
-		// Update subtreeStart for next operator
-		subtreeStart = len(p.nodes) - 1
 	}
 }
 

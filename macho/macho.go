@@ -21,14 +21,11 @@ const (
 	S_ATTR_SOME_INSTRUCTIONS = 0x400
 )
 
-type MachOGenerator struct {
-	Text []byte
-}
-
-func (m *MachOGenerator) Generate() []byte {
+// Generate creates a Mach-O object file from machine code
+func Generate(text []byte) []byte {
 	// Calculate offsets
 	textOffset := uint32(232) // header + commands (including build version)
-	symOffset := textOffset + uint32(len(m.Text))
+	symOffset := textOffset + uint32(len(text))
 	strOffset := symOffset + 16 // one symbol * 16 bytes
 	strSize := uint32(7)        // "_main\0\0\0" padded to 8-byte boundary
 
@@ -52,9 +49,9 @@ func (m *MachOGenerator) Generate() []byte {
 	binary.LittleEndian.PutUint32(segCmd[4:], 152)                               // cmdsize
 	copy(segCmd[8:24], []byte("__TEXT\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")) // segname
 	binary.LittleEndian.PutUint64(segCmd[24:], 0)                                // vmaddr
-	binary.LittleEndian.PutUint64(segCmd[32:], uint64(len(m.Text)))              // vmsize
+	binary.LittleEndian.PutUint64(segCmd[32:], uint64(len(text)))                // vmsize
 	binary.LittleEndian.PutUint64(segCmd[40:], uint64(textOffset))               // fileoff
-	binary.LittleEndian.PutUint64(segCmd[48:], uint64(len(m.Text)))              // filesize
+	binary.LittleEndian.PutUint64(segCmd[48:], uint64(len(text)))                // filesize
 	binary.LittleEndian.PutUint32(segCmd[56:], 5)                                // maxprot (VM_PROT_READ | VM_PROT_EXECUTE)
 	binary.LittleEndian.PutUint32(segCmd[60:], 5)                                // initprot
 	binary.LittleEndian.PutUint32(segCmd[64:], 1)                                // nsects
@@ -63,7 +60,7 @@ func (m *MachOGenerator) Generate() []byte {
 	copy(segCmd[72:88], []byte("__text\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"))                            // sectname
 	copy(segCmd[88:104], []byte("__TEXT\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"))                           // segname
 	binary.LittleEndian.PutUint64(segCmd[104:], 0)                                                           // addr
-	binary.LittleEndian.PutUint64(segCmd[112:], uint64(len(m.Text)))                                         // size
+	binary.LittleEndian.PutUint64(segCmd[112:], uint64(len(text)))                                           // size
 	binary.LittleEndian.PutUint32(segCmd[120:], textOffset)                                                  // offset
 	binary.LittleEndian.PutUint32(segCmd[124:], 2)                                                           // align (4-byte alignment)
 	binary.LittleEndian.PutUint32(segCmd[128:], 0)                                                           // reloff
@@ -100,7 +97,7 @@ func (m *MachOGenerator) Generate() []byte {
 	}
 
 	// Text data
-	result = append(result, m.Text...)
+	result = append(result, text...)
 
 	// Symbol table (16 bytes per symbol)
 	symbol := make([]byte, 16)

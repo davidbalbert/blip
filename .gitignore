@@ -6,4 +6,6 @@ test_mul_div
 test_precedence
 test_complex
 test_division
+test_precedence_simple
+test_simple_mul
 blip

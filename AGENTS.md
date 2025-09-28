@@ -10,21 +10,10 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 
 ## Architecture
 
-### Data Structures
-```go
-type Generator struct {
-    Instructions []Insn  // Generated machine code
-}
-
-type MachOGenerator struct {
-    textData []byte  // Raw machine code bytes
-}
-```
-
 ### Pipeline
 1. Parse `.bl` source file → lexical analysis
-2. Generate ARM64 machine code → `Generator`
-3. Generate Mach-O object file → `MachOGenerator` 
+2. Generate ARM64 machine code → `obj/arm64.Generator`
+3. Generate Mach-O object file → `macho.MachOGenerator`
 4. External toolchain: `ld` (linker) → executable
 
 ## File Extensions & Workflow
@@ -41,9 +30,8 @@ type MachOGenerator struct {
 - **Full build**: `as file.s -o file.o && ld file.o -o executable -lSystem -syslibroot $(xcrun --show-sdk-path) -e _main`
 
 ## Technical Notes
-- Uses temporary directories for assembly generation to avoid conflicts with Go's built-in assembler
-- Assembly generated uses macOS system calls (sys_exit)
-- Single-file design (everything in `main.go`) for now
+- Generates object files directly without assembly intermediate step
+- Uses macOS system calls (sys_exit)
 - Clean data transformations: source text → Program → Assembly → file output
 - Data-oriented approach: compact structs, cache-friendly memory layout, CPU-sympathetic design
 
@@ -53,7 +41,6 @@ type MachOGenerator struct {
 ## Future Plans
 - Expand language syntax beyond single integers
 - Support multiple target architectures
-- Eventually generate object files directly (bypass external assembler)
 - Maintain incremental, test-driven development approach
 
 ## Example

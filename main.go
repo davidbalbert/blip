@@ -10,8 +10,6 @@ import (
 	"github.com/davidbalbert/blip/parse"
 )
 
-
-
 func main() {
 	if len(os.Args) != 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %s <source-file>\n", os.Args[0])
@@ -27,14 +25,11 @@ func main() {
 	}
 
 	objFile := sourceFile + ".o"
-
-	// New pipeline: lex -> parse -> codegen
 	tokens := lex.Lex(content)
-	nodes := parse.Parse(tokens, content)
-	machineCode := obj.Codegen(nodes, tokens, content)
+	nodes := parse.Parse(tokens)
+	insns := obj.Codegen(nodes, tokens, content)
 
-	machoGen := macho.NewMachOGenerator()
-	machoGen.SetTextData(machineCode)
+	machoGen := macho.MachOGenerator{Text: insns}
 	objData := machoGen.Generate()
 
 	err = os.WriteFile(objFile, objData, 0644)

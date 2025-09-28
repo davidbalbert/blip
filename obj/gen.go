@@ -9,31 +9,31 @@ import (
 )
 
 // Codegen generates ARM64 machine code from a parse tree
-func Codegen(nodes []parse.ParseNode, tokens []lex.Token, text []byte) []byte {
+func Codegen(nodes []parse.Node, tokens []lex.Token, text []byte) []byte {
 	gen := arm64.Generator{}
-	
+
 	// Walk the parse tree and generate code
 	// For now, we'll traverse the nodes and handle the arithmetic expression
 	ctx := &codegenContext{
-		gen:    &gen,
-		nodes:  nodes,
-		tokens: tokens,
-		text:   text,
+		gen:        &gen,
+		nodes:      nodes,
+		tokens:     tokens,
+		text:       text,
 		firstValue: true,
 	}
-	
+
 	ctx.walkNodes()
-	
+
 	// Add exit syscall
 	gen.MovImm16(16, 1) // mov x16, #1 (sys_exit)
 	gen.SVC(0x80)       // svc #0x80
-	
+
 	return gen.Bytes()
 }
 
 type codegenContext struct {
 	gen        *arm64.Generator
-	nodes      []parse.ParseNode
+	nodes      []parse.Node
 	tokens     []lex.Token
 	text       []byte
 	firstValue bool
@@ -50,25 +50,25 @@ func (ctx *codegenContext) processNode() {
 	if ctx.nodeIndex >= len(ctx.nodes) {
 		return
 	}
-	
+
 	node := ctx.nodes[ctx.nodeIndex]
 	ctx.nodeIndex++
-	
+
 	switch node.Kind {
 	case parse.NodeExpression:
 		// Bracketing node - just process children that follow
 		return
-		
+
 	case parse.NodeInt:
 		// Generate code for integer literal
 		token := ctx.tokens[node.Token]
 		value := ctx.getIntValue(token)
-		
+
 		if ctx.firstValue {
 			ctx.gen.MovImm(0, value) // mov x0, #value
 			ctx.firstValue = false
 		}
-		
+
 	case parse.NodeAdd:
 		// Binary add - right operand is on stack, left operand in x0
 		// Process right operand (it's the previous node due to postorder)
@@ -78,7 +78,7 @@ func (ctx *codegenContext) processNode() {
 			rightValue := ctx.getIntValue(rightToken)
 			ctx.gen.AddImm(0, 0, rightValue) // add x0, x0, #rightValue
 		}
-		
+
 	case parse.NodeSub:
 		// Binary sub - similar to add
 		rightNode := ctx.nodes[ctx.nodeIndex-2]

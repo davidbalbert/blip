@@ -12,7 +12,7 @@ const (
 	NodeExpression          // root expression node (bracketing)
 )
 
-type ParseNode struct {
+type Node struct {
 	Kind         NodeKind
 	Token        int // index into tokens slice
 	SubtreeStart int // index into nodes slice (first child in postorder)
@@ -21,17 +21,15 @@ type ParseNode struct {
 
 type Parser struct {
 	tokens []lex.Token
-	text   []byte
-	pos    int         // current token index
-	nodes  []ParseNode // postorder storage
+	pos    int    // current token index
+	nodes  []Node // postorder storage
 }
 
-func newParser(tokens []lex.Token, text []byte) *Parser {
+func newParser(tokens []lex.Token) *Parser {
 	return &Parser{
 		tokens: tokens,
-		text:   text,
 		pos:    0,
-		nodes:  make([]ParseNode, 0, len(tokens)), // pre-size for efficiency
+		nodes:  make([]Node, 0, len(tokens)), // pre-size for efficiency
 	}
 }
 
@@ -55,7 +53,7 @@ func (p *Parser) consume() lex.Token {
 }
 
 func (p *Parser) addLeafNode(kind NodeKind, tokenIndex int) {
-	p.nodes = append(p.nodes, ParseNode{
+	p.nodes = append(p.nodes, Node{
 		Kind:         kind,
 		Token:        tokenIndex,
 		SubtreeStart: len(p.nodes), // points to itself for leaves
@@ -64,7 +62,7 @@ func (p *Parser) addLeafNode(kind NodeKind, tokenIndex int) {
 }
 
 func (p *Parser) addNode(kind NodeKind, tokenIndex int, subtreeStart int) {
-	p.nodes = append(p.nodes, ParseNode{
+	p.nodes = append(p.nodes, Node{
 		Kind:         kind,
 		Token:        tokenIndex,
 		SubtreeStart: subtreeStart,
@@ -114,7 +112,7 @@ func (p *Parser) parseTerm() {
 		// Error case - emit invalid node and consume one token to avoid infinite loop
 		tokenIndex := p.pos
 		p.consume()
-		node := ParseNode{
+		node := Node{
 			Kind:         NodeInvalid,
 			Token:        tokenIndex,
 			SubtreeStart: len(p.nodes),
@@ -125,8 +123,8 @@ func (p *Parser) parseTerm() {
 }
 
 // Parse parses the tokens into a parse tree
-func Parse(tokens []lex.Token, text []byte) []ParseNode {
-	parser := newParser(tokens, text)
+func Parse(tokens []lex.Token) []Node {
+	parser := newParser(tokens)
 
 	if len(tokens) == 0 || (len(tokens) == 1 && tokens[0].Type() == lex.TokEOF) {
 		return parser.nodes

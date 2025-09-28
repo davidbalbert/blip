@@ -6,6 +6,7 @@ import (
 
 	"github.com/davidbalbert/blip/lex"
 	"github.com/davidbalbert/blip/macho"
+	"github.com/davidbalbert/blip/obj"
 	"github.com/davidbalbert/blip/parse"
 )
 
@@ -30,7 +31,7 @@ func main() {
 	// New pipeline: lex -> parse -> codegen
 	tokens := lex.Lex(content)
 	nodes := parse.Parse(tokens, content)
-	machineCode := codegen(nodes, tokens, content)
+	machineCode := obj.Codegen(nodes, tokens, content)
 
 	machoGen := macho.NewMachOGenerator()
 	machoGen.SetTextData(machineCode)

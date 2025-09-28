@@ -1,4 +1,4 @@
-package main
+package obj
 
 import (
 	"strconv"
@@ -8,8 +8,8 @@ import (
 	"github.com/davidbalbert/blip/parse"
 )
 
-// codegen generates ARM64 machine code from a parse tree
-func codegen(nodes []parse.ParseNode, tokens []lex.Token, text []byte) []byte {
+// Codegen generates ARM64 machine code from a parse tree
+func Codegen(nodes []parse.ParseNode, tokens []lex.Token, text []byte) []byte {
 	gen := arm64.Generator{}
 	
 	// Walk the parse tree and generate code

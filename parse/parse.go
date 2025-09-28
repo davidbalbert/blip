@@ -131,6 +131,28 @@ func (p *Parser) parseInt() {
 		tokenIndex := p.pos
 		p.consume()
 		p.addLeafNode(NodeInt, tokenIndex)
+	} else if p.currentTokenType() == lex.TokLParen {
+		// Parse parenthesized expression
+		p.consume() // consume '('
+
+		// Recursively parse the inner expression (additive level)
+		p.parseAddExpr()
+
+		// Consume closing paren (should be there, but handle error if missing)
+		if p.currentTokenType() == lex.TokRParen {
+			p.consume() // consume ')'
+		} else {
+			// Error: missing closing paren - emit invalid node
+			tokenIndex := p.pos
+			p.consume()
+			node := Node{
+				Kind:         NodeInvalid,
+				Token:        tokenIndex,
+				SubtreeStart: len(p.nodes),
+				HasError:     true,
+			}
+			p.nodes = append(p.nodes, node)
+		}
 	} else {
 		// Error case - emit invalid node and consume one token to avoid infinite loop
 		tokenIndex := p.pos

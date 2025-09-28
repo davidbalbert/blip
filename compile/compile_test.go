@@ -47,6 +47,10 @@ func TestCompiler(t *testing.T) {
 		{"division", "20 / 4 + 1", 6},
 		{"multiplication", "3 * 7", 21},
 		{"subtraction", "50 - 8", 42},
+		{"parens_basic", "(2 + 3) * 4", 20},
+		{"parens_change_precedence", "2 * (3 + 4)", 14},
+		{"nested_parens", "((2 + 3) * 4) - 5", 15},
+		{"parens_division", "20 / (2 + 2)", 5},
 	}
 
 	for _, tc := range tests {

@@ -10,6 +10,8 @@ const (
 	TokSub
 	TokMul
 	TokDiv
+	TokLParen
+	TokRParen
 )
 
 type Token uint32
@@ -64,6 +66,12 @@ func (l *Lexer) NextToken() Token {
 	case '/':
 		l.pos++
 		return NewToken(TokDiv, start)
+	case '(':
+		l.pos++
+		return NewToken(TokLParen, start)
+	case ')':
+		l.pos++
+		return NewToken(TokRParen, start)
 	default:
 		if isDigit(ch) {
 			return l.readInt(start)
@@ -93,7 +101,7 @@ func isDigit(ch byte) bool {
 func Lex(text []byte) []Token {
 	lexer := NewLexer(text)
 	var tokens []Token
-	
+
 	for {
 		token := lexer.NextToken()
 		tokens = append(tokens, token)
@@ -101,6 +109,6 @@ func Lex(text []byte) []Token {
 			break
 		}
 	}
-	
+
 	return tokens
 }

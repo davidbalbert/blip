@@ -28,7 +28,7 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 
 ## Key Commands
 - **Test**: `go test ./...` (all tests are automated)
-- **Build**: `go build -o blip ./cmd/compile`
+- **Development**: Do NOT build or run the compiler directly. All functionality should be tested through automated Go tests.
 
 ## Technical Notes
 - Generates object files directly without assembly intermediate step
@@ -38,6 +38,7 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 
 ## Code Style
 - **Comments**: Leave no unnecessary comments. Only write comments where the code would be unclear without them. Comments should never repeat what the code does - they should explain context that's necessary to understand the code, and only if it's actually necessary.
+- **Formatting**: Always auto-format code after making changes using the format_file tool.
 
 ## Future Plans
 - Expand language syntax beyond arithmetic expressions

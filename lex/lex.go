@@ -8,6 +8,8 @@ const (
 	TokInt
 	TokAdd
 	TokSub
+	TokMul
+	TokDiv
 )
 
 type Token uint32
@@ -56,6 +58,12 @@ func (l *Lexer) NextToken() Token {
 	case '-':
 		l.pos++
 		return NewToken(TokSub, start)
+	case '*':
+		l.pos++
+		return NewToken(TokMul, start)
+	case '/':
+		l.pos++
+		return NewToken(TokDiv, start)
 	default:
 		if isDigit(ch) {
 			return l.readInt(start)

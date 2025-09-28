@@ -38,6 +38,22 @@ func (g *Generator) MovImm16(reg int, imm int) {
 	g.Instructions = append(g.Instructions, insn)
 }
 
+func (g *Generator) Mul(rd, rn, rm int) {
+	// MUL xd, xn, xm (multiply)
+	// Format: sf=1, op54=00, op31=11010110, Rm=rm, op15=000000, Rn=rn, Rd=rd
+	// 1|00|11010110|rm|000000|rn|rd
+	insn := Insn(0x9B000000 | (uint32(rm) << 16) | (uint32(rn) << 5) | uint32(rd))
+	g.Instructions = append(g.Instructions, insn)
+}
+
+func (g *Generator) Div(rd, rn, rm int) {
+	// SDIV xd, xn, xm (signed divide)
+	// Format: sf=1, op1=0, S=0, op2=11010110, Rm=rm, op3=000011, Rn=rn, Rd=rd
+	// 1|0|0|11010110|rm|000011|rn|rd
+	insn := Insn(0x9AC00C00 | (uint32(rm) << 16) | (uint32(rn) << 5) | uint32(rd))
+	g.Instructions = append(g.Instructions, insn)
+}
+
 func (g *Generator) SVC(imm int) {
 	// SVC #imm - supervisor call
 	// Format: 11010100|000|imm16|00000

@@ -87,6 +87,26 @@ func (ctx *codegenContext) processNode() {
 			rightValue := ctx.getIntValue(rightToken)
 			ctx.gen.SubImm(0, 0, rightValue) // sub x0, x0, #rightValue
 		}
+
+	case parse.NodeMul:
+		// Binary mul - load right operand into register and multiply
+		rightNode := ctx.nodes[ctx.nodeIndex-2]
+		if rightNode.Kind == parse.NodeInt {
+			rightToken := ctx.tokens[rightNode.Token]
+			rightValue := ctx.getIntValue(rightToken)
+			ctx.gen.MovImm(1, rightValue) // mov x1, #rightValue
+			ctx.gen.Mul(0, 0, 1)          // mul x0, x0, x1
+		}
+
+	case parse.NodeDiv:
+		// Binary div - load right operand into register and divide
+		rightNode := ctx.nodes[ctx.nodeIndex-2]
+		if rightNode.Kind == parse.NodeInt {
+			rightToken := ctx.tokens[rightNode.Token]
+			rightValue := ctx.getIntValue(rightToken)
+			ctx.gen.MovImm(1, rightValue) // mov x1, #rightValue
+			ctx.gen.Div(0, 0, 1)          // sdiv x0, x0, x1
+		}
 	}
 }
 

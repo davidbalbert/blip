@@ -9,6 +9,8 @@ const (
 	NodeInt                 // leaf: integer literal
 	NodeAdd                 // binary: left + right (childCount = 2)
 	NodeSub                 // binary: left - right (childCount = 2)
+	NodeMul                 // binary: left * right (childCount = 2)
+	NodeDiv                 // binary: left / right (childCount = 2)
 	NodeExpression          // root expression node (bracketing)
 )
 
@@ -70,26 +72,30 @@ func (p *Parser) addNode(kind NodeKind, tokenIndex int, subtreeStart int) {
 	})
 }
 
-// Simple recursive descent parser for arithmetic expressions
-// Grammar: expression = term (('+' | '-') term)*
-func (p *Parser) parseExpression() {
+// Parser for arithmetic expressions with proper precedence
+// Grammar:
+//
+//	addExpr = mulExpr (('+' | '-') mulExpr)*
+//	mulExpr = intExpr (('*' | '/') intExpr)*
+//	int = INT
+func (p *Parser) parseAddExpr() {
 	subtreeStart := len(p.nodes)
 
 	// Add bracketing node
 	expressionToken := p.pos
 	p.addLeafNode(NodeExpression, expressionToken)
 
-	// Parse first term
-	p.parseTerm()
+	// Parse first multiplicative
+	p.parseMulExpr()
 
-	// Parse additional terms with operators
+	// Parse additional multiplicative expressions with operators
 	for p.currentTokenType() == lex.TokAdd || p.currentTokenType() == lex.TokSub {
 		opType := p.currentTokenType()
 		opToken := p.pos
 		p.consume() // consume operator
 
 		// Parse right operand
-		p.parseTerm()
+		p.parseMulExpr()
 
 		// Emit operator node in postorder (children already emitted)
 		if opType == lex.TokAdd {
@@ -103,7 +109,34 @@ func (p *Parser) parseExpression() {
 	}
 }
 
-func (p *Parser) parseTerm() {
+func (p *Parser) parseMulExpr() {
+	subtreeStart := len(p.nodes)
+
+	// Parse first primary
+	p.parseInt()
+
+	// Parse additional primary expressions with operators
+	for p.currentTokenType() == lex.TokMul || p.currentTokenType() == lex.TokDiv {
+		opType := p.currentTokenType()
+		opToken := p.pos
+		p.consume() // consume operator
+
+		// Parse right operand
+		p.parseInt()
+
+		// Emit operator node in postorder (children already emitted)
+		if opType == lex.TokMul {
+			p.addNode(NodeMul, opToken, subtreeStart)
+		} else {
+			p.addNode(NodeDiv, opToken, subtreeStart)
+		}
+
+		// Update subtreeStart for next operator
+		subtreeStart = len(p.nodes) - 1
+	}
+}
+
+func (p *Parser) parseInt() {
 	if p.currentTokenType() == lex.TokInt {
 		tokenIndex := p.pos
 		p.consume()
@@ -130,7 +163,7 @@ func Parse(tokens []lex.Token) []Node {
 		return parser.nodes
 	}
 
-	parser.parseExpression()
+	parser.parseAddExpr()
 
 	return parser.nodes
 }

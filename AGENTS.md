@@ -6,31 +6,31 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 ## Current Status
 - **Language**: Go
 - **Design Philosophy**: Data-oriented design (CPU-friendly design, cache efficiency, memory layout optimization, keeping frequently used data together and small)
-- **Current Functionality**: Parses single integer from `.bl` source files and generates ARM64 assembly that exits with that value
+- **Current Functionality**: Parses single integer from `.bl` source files and generates Mach-O object files directly with ARM64 machine code
 
 ## Architecture
 
 ### Data Structures
 ```go
-type Program struct {
-    ExitCode int  // Currently just a single integer
+type Generator struct {
+    Instructions []Insn  // Generated machine code
 }
 
-type Assembly struct {
-    Instructions []string  // Generated assembly instructions
+type MachOGenerator struct {
+    textData []byte  // Raw machine code bytes
 }
 ```
 
 ### Pipeline
-1. Parse `.bl` source file → `Program` struct
-2. Generate ARM64 assembly → `Assembly` struct  
-3. Write assembly to temporary directory (avoids Go assembler conflicts)
-4. External toolchain: `as` (assembler) → `ld` (linker) → executable
+1. Parse `.bl` source file → lexical analysis
+2. Generate ARM64 machine code → `Generator`
+3. Generate Mach-O object file → `MachOGenerator` 
+4. External toolchain: `ld` (linker) → executable
 
 ## File Extensions & Workflow
 - **Source**: `.bl` files
-- **Generated**: `.s` assembly files (in temp directories)
-- **Build chain**: `test.bl` → `test.s` → `test.o` → `test` (executable)
+- **Generated**: `.o` object files (in current directory)
+- **Build chain**: `test.bl` → `test.bl.o` → `test` (executable)
 
 ## Target Platforms
 - **Current**: ARM64 on macOS

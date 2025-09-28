@@ -3,18 +3,15 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
+	"strconv"
 
 	"github.com/davidbalbert/blip/lex"
+	"github.com/davidbalbert/blip/macho"
+	"github.com/davidbalbert/blip/obj/arm64"
 )
 
-func codegen(content []byte) []string {
-	var insns []string
-	insns = append(insns, ".global _main")
-	insns = append(insns, ".align 2")
-	insns = append(insns, "")
-	insns = append(insns, "_main:")
+func codegen(content []byte) []byte {
+	gen := arm64.Generator{}
 
 	lexer := lex.NewLexer(content)
 	operation := '+'
@@ -35,14 +32,14 @@ func codegen(content []byte) []string {
 			for end < uint32(len(content)) && isDigit(content[end]) {
 				end++
 			}
-			value := string(content[start:end])
+			value, _ := strconv.Atoi(string(content[start:end]))
 			if firstValue {
-				insns = append(insns, "    mov x0, #"+value)
+				gen.MovImm(0, value) // mov x0, #value
 				firstValue = false
 			} else if operation == '+' {
-				insns = append(insns, "    add x0, x0, #"+value)
+				gen.AddImm(0, 0, value) // add x0, x0, #value
 			} else {
-				insns = append(insns, "    sub x0, x0, #"+value)
+				gen.SubImm(0, 0, value) // sub x0, x0, #value
 			}
 		case lex.TokAdd:
 			operation = '+'
@@ -52,10 +49,10 @@ func codegen(content []byte) []string {
 		}
 	}
 
-	insns = append(insns, "    mov x16, #1")
-	insns = append(insns, "    svc #0x80")
+	gen.MovImm16(16, 1) // mov x16, #1 (sys_exit)
+	gen.SVC(0x80)       // svc #0x80
 
-	return insns
+	return gen.Bytes()
 }
 
 func isDigit(ch byte) bool {
@@ -76,16 +73,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	tempDir := "/tmp"
-	asmFile := filepath.Join(tempDir, sourceFile+".s")
+	objFile := sourceFile + ".o"
 
-	insns := codegen(content)
-	asm := strings.Join(insns, "\n") + "\n"
-	err = os.WriteFile(asmFile, []byte(asm), 0644)
+	machineCode := codegen(content)
+
+	machoGen := macho.NewMachOGenerator()
+	machoGen.SetTextData(machineCode)
+	objData := machoGen.Generate()
+
+	err = os.WriteFile(objFile, objData, 0644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Write error: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Generated %s\n", asmFile)
+	fmt.Printf("Generated %s\n", objFile)
 }

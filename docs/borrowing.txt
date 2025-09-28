@@ -1,3 +1,86 @@
 There are two different possibly independent axes to borrowing when we think about the consuming when we think about about resource cleanup. up. There's the first is pointers. So obviously a pointer is a borrow, and you can borrow uniquely or you can borrow shared. but there's another type let's say we're thinking about open, close, read-in, right? the unix system calls and the the ... what those APIs would be idiomatic translation to blip. Open returns a file descriptor and a file descriptor has to be well it's not that the file descriptor has to be unique necessarily but the file descriptor is resource owning which means it's linear. It has to be, um, cleaned up, so it's required to be used once and read and write should borrow. and quote is should consume. So it's required to be consumed. one way to do the API would be to have the borrows take pointers but it doesn't actually have to be a pointer right it just has to be a borrow it's an int and so So, you know, like in Swift, where you have consuming and borrowing, you know, which don't have to be pointers, the data can actually just be copied. and if we want to mirror the the Unix API that keep things but add the sort of enforced cleanup, up you'd want read and write to take a a take the file descriptor directly, but not, but not consume it. and so that's the other axes, right? You can, from a resource management perspective, You can have a borrowing thing that doesn't necessarily take a pointer.
 
-How do we handle this? can we make a non-escape of a non-escaping linear type Fiat Barra. I'm not sure I need to think.
+How do we handle this? can we make non-escaping linear type Fiat Barra. I'm not sure I need to think.
+
+An idea from Ori:
+
+Think in terms of duration of regions, not values. Regions are flow-based, not lexical. Consider, open(2), close(2), and read(2):
+
+func open(path string) int in new | error
+func read(fd int, buf []byte) int | error
+func close(fd int in .) error
+
+`in` denotes a region. `new` is a keyword that represents the start of a new region. The fd was conjured out of thin air. From somewhere global.
+
+Alternatively
+
+func open(path string) int@ | error
+func read(fd int, buf []byte) int | error
+func close(fd int@) error
+
+Where @ denotes a region (e.g. int@foo). The lack of a region name creates an anonymous region.
+
+When fd is passed to read, it is borrowed because the region isn't passed in. Put another way, because read takes fd without an attached region, read is promising not to escape fd.
+
+    NOTE: I don't think the above totally works. Int is trivially copyable, so it can in fact be escaped. We might need a noesc modifier instead.
+
+Because multiple variables can share a region, you can have multiple variables with the same resource owning value, and can use either of them:
+
+    // ignoring errors for now
+    a := open("/tmp/foo.txt")
+    b := a
+
+    // b and a have the same region
+
+    read(b) // this is fine
+    read(a) // as is this
+    read(b) // this is fine too
+
+    close(b) // consumes the region, neither a nor b can be used after this point.
+
+But what about this?
+
+    var a int = 5
+    read(a) // ???
+
+If we want to prevent this we need some way of preventing the construction of new file descriptors. But we obviously can't prevent the construction of a new int. So maybe we do this.
+
+    package os
+
+    type Fd struct {
+        fd int
+    }
+
+    func Open(path string) Fd@ | error
+    func Read(fd Fd, buf []byte) int | error
+    func Close(fd Fd@) error
+
+Can we come up with a meaningful rule that says you can't make an Fd outside the os package?
+
+Maybe it's you can't create a zero value outside of it's package if it has non-exported fields?
+
+Alternatively, maybe we could find a syntax to get rid of a zero value: i.e. to remove defaults
+
+    type Fd struct {
+        fd int = !
+    }
+
+Talking in terms of regions lets us unify borrows of normal values and pointers (pointers always have a region because they're always borrowing).
+
+In Ori's version, the Fd returned by Open needs to be consumed (it's linear) because it's annotated with a region. I don't think this is workable. We don't want to have to explicitly drop all pointers that we borrow.
+
+I'm pretty sure we need some other sort of way to say that something must be consumed.
+
+An alternative approach:
+
+func open(path string) int ??? | error
+func read(fd int, buf []byte) int | error
+func close(fd int esc) error
+
+Fd passed to read doesn't escape (it's not marked as esc), so it's a borrow.
+
+Or the opposite
+
+func open(path string) int ??? | error
+func read(fd int noesc, buf []byte) int | error
+func close(fd int) error

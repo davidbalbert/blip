@@ -6,15 +6,16 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 ## Current Status
 - **Language**: Go
 - **Design Philosophy**: Data-oriented design (CPU-friendly design, cache efficiency, memory layout optimization, keeping frequently used data together and small)
-- **Current Functionality**: Parses single integer from `.bl` source files and generates Mach-O object files directly with ARM64 machine code
+- **Current Functionality**: Parses arithmetic expressions from `.bl` source files and generates Mach-O object files directly with ARM64 machine code
 
 ## Architecture
 
 ### Pipeline
-1. Parse `.bl` source file → lexical analysis
-2. Generate ARM64 machine code → `obj/arm64.Generator`
-3. Generate Mach-O object file → `macho.MachOGenerator`
-4. External toolchain: `ld` (linker) → executable
+1. Lex `.bl` source file → token stream (`lex.Lex`)
+2. Parse token stream → parse tree (`parse.Parse`)
+3. Generate ARM64 machine code from parse tree (`codegen`)
+4. Generate Mach-O object file → `macho.MachOGenerator`
+5. External toolchain: `ld` (linker) → executable
 
 ## File Extensions & Workflow
 - **Source**: `.bl` files
@@ -26,34 +27,36 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 - **Planned**: x86-64 on macOS and Linux, ARM64 on Linux
 
 ## Key Commands
-- **Compile**: `go run . <source.bl>` or `go build -o blip && ./blip <source.bl>`
-- **Full build**: `as file.s -o file.o && ld file.o -o executable -lSystem -syslibroot $(xcrun --show-sdk-path) -e _main`
+- **Compile**: `go run . <source.bl>`
+- **Full build**: `./blip source.bl && ld source.bl.o -o executable -lSystem -syslibroot $(xcrun --show-sdk-path) -e _main`
 
 ## Technical Notes
 - Generates object files directly without assembly intermediate step
 - Uses macOS system calls (sys_exit)
-- Clean data transformations: source text → Program → Assembly → file output
+- Clean data transformations: source text → tokens → parse tree → machine code → object file
 - Data-oriented approach: compact structs, cache-friendly memory layout, CPU-sympathetic design
 
 ## Code Style
 - **Comments**: Leave no unnecessary comments. Only write comments where the code would be unclear without them. Comments should never repeat what the code does - they should explain context that's necessary to understand the code, and only if it's actually necessary.
 
 ## Future Plans
-- Expand language syntax beyond single integers
+- Expand language syntax beyond arithmetic expressions
 - Support multiple target architectures
 - Maintain incremental, test-driven development approach
 
 ## Example
 ```
 # test.bl
-42
+10 + 5 - 3
 
-# Generated assembly (test.s)
-.global _main
-.align 2
+# Compilation process:
+# 1. Lex: "10" "+" "5" "-" "3" → tokens
+# 2. Parse: tokens → postorder parse tree
+# 3. Codegen: parse tree → ARM64 machine code
+# 4. Object file generation → test.bl.o
 
-_main:
-    mov x0, #42
-    mov x16, #1
-    svc #0x80
+# Usage:
+./blip test.bl
+ld test.bl.o -o test -lSystem -syslibroot $(xcrun --show-sdk-path) -e _main
+./test; echo $?  # outputs: 12
 ```

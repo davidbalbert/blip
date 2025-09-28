@@ -80,3 +80,19 @@ func isWhitespace(ch byte) bool {
 func isDigit(ch byte) bool {
 	return ch >= '0' && ch <= '9'
 }
+
+// Lex tokenizes the input text and returns all tokens
+func Lex(text []byte) []Token {
+	lexer := NewLexer(text)
+	var tokens []Token
+	
+	for {
+		token := lexer.NextToken()
+		tokens = append(tokens, token)
+		if token.Type() == TokEOF {
+			break
+		}
+	}
+	
+	return tokens
+}

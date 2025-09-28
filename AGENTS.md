@@ -15,7 +15,7 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 2. Parse token stream → parse tree (`parse.Parse`)
 3. Generate ARM64 machine code from parse tree (`codegen`)
 4. Generate Mach-O object file → `macho.MachOGenerator`
-5. External toolchain: `ld` (linker) → executable
+5. Link into an ARM64 Mach-O executable with embedded ad-hoc code signature → `cmd/link`
 
 ## File Extensions & Workflow
 - **Source**: `.bl` files
@@ -58,6 +58,6 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 
 # Usage:
 ./blip test.bl
-ld test.bl.o -o test -lSystem -syslibroot $(xcrun --show-sdk-path) -e _main
+./blip-link test.bl.o test
 ./test; echo $?  # outputs: 12
 ```

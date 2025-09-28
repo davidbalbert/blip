@@ -9,27 +9,26 @@ import (
 )
 
 var (
-	blipBinary string
-	sdkPath    string
-	setupOnce  sync.Once
+	blipCompileBinary string
+	blipLinkBinary    string
+	setupOnce         sync.Once
 )
 
 func setupTestEnvironment(t *testing.T) {
 	setupOnce.Do(func() {
 		tmpDir := t.TempDir()
-		blipBinary = filepath.Join(tmpDir, "blip")
+		blipCompileBinary = filepath.Join(tmpDir, "blip-compile")
+		blipLinkBinary = filepath.Join(tmpDir, "blip-link")
 
-		buildCmd := exec.Command("go", "build", "-o", blipBinary, "../cmd/compile")
-		if err := buildCmd.Run(); err != nil {
-			t.Fatalf("failed to build blip: %v", err)
+		buildCompileCmd := exec.Command("go", "build", "-o", blipCompileBinary, "../cmd/compile")
+		if err := buildCompileCmd.Run(); err != nil {
+			t.Fatalf("failed to build blip compile binary: %v", err)
 		}
 
-		sdkCmd := exec.Command("xcrun", "--show-sdk-path")
-		sdkPathBytes, err := sdkCmd.Output()
-		if err != nil {
-			t.Fatalf("failed to get SDK path: %v", err)
+		buildLinkCmd := exec.Command("go", "build", "-o", blipLinkBinary, "../cmd/link")
+		if err := buildLinkCmd.Run(); err != nil {
+			t.Fatalf("failed to build blip link binary: %v", err)
 		}
-		sdkPath = string(sdkPathBytes[:len(sdkPathBytes)-1])
 	})
 }
 
@@ -64,15 +63,15 @@ func TestCompiler(t *testing.T) {
 				t.Fatalf("failed to write test file: %v", err)
 			}
 
-			cmd := exec.Command(blipBinary, blFile)
-			if err := cmd.Run(); err != nil {
+			compileCmd := exec.Command(blipCompileBinary, blFile)
+			if err := compileCmd.Run(); err != nil {
 				t.Fatalf("compilation failed: %v", err)
 			}
 
 			objFile := blFile + ".o"
 			exeFile := filepath.Join(tmpDir, "test")
 
-			linkCmd := exec.Command("ld", objFile, "-o", exeFile, "-lSystem", "-syslibroot", sdkPath, "-e", "_main")
+			linkCmd := exec.Command(blipLinkBinary, objFile, exeFile)
 			if err := linkCmd.Run(); err != nil {
 				t.Fatalf("linking failed: %v", err)
 			}

@@ -9,7 +9,7 @@ import (
 	"github.com/davidbalbert/blip/lex"
 )
 
-func gen(content []byte) []string {
+func codegen(content []byte) []string {
 	var insns []string
 	insns = append(insns, ".global _main")
 	insns = append(insns, ".align 2")
@@ -76,17 +76,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	tempDir, err := os.MkdirTemp("", "blip-*")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Temp dir error: %v\n", err)
-		os.Exit(1)
-	}
-	defer os.RemoveAll(tempDir)
+	tempDir := "/tmp"
+	asmFile := filepath.Join(tempDir, sourceFile+".s")
 
-	baseName := strings.TrimSuffix(filepath.Base(sourceFile), ".bl")
-	asmFile := filepath.Join(tempDir, baseName+".s")
-
-	insns := gen(content)
+	insns := codegen(content)
 	asm := strings.Join(insns, "\n") + "\n"
 	err = os.WriteFile(asmFile, []byte(asm), 0644)
 	if err != nil {

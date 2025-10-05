@@ -57,7 +57,7 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 # 4. Object file generation → test.bl.o
 
 # Usage:
-./blip test.bl
-./blip-link test.bl.o test
+go run ./cmd/compile test.bl
+go run ./cmd/link test.bl.o test
 ./test; echo $?  # outputs: 12
 ```

@@ -24,7 +24,11 @@ func main() {
 	}
 
 	tokens := lex.Lex(content)
-	nodes := parse.Parse(tokens)
+	nodes, err := parse.Parse(tokens)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "parse: %v\n", err)
+		os.Exit(1)
+	}
 	text := obj.Codegen(nodes, tokens, content)
 
 	objData := macho.Generate(text)

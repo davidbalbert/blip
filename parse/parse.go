@@ -1,11 +1,27 @@
 package parse
 
-import "github.com/davidbalbert/blip/lex"
+import (
+	"strings"
 
-type NodeKind uint8
+	"github.com/davidbalbert/blip/lex"
+)
+
+// Grammar:
+//   Expression → AddExpr
+//   AddExpr    → MulExpr (('+' | '-') MulExpr)*
+//   MulExpr    → Primary (('*' | '/') Primary)*
+//   Primary    → INT | '(' AddExpr ')'
+
+func assert(condition bool, message string) {
+	if !condition {
+		panic(message)
+	}
+}
+
+type NodeType uint8
 
 const (
-	NodeInvalid    NodeKind = iota
+	NodeInvalid    NodeType = iota
 	NodeInt                 // leaf: integer literal
 	NodeAdd                 // binary: left + right (childCount = 2)
 	NodeSub                 // binary: left - right (childCount = 2)
@@ -15,31 +31,54 @@ const (
 )
 
 type Node struct {
-	Kind         NodeKind
-	Token        int // index into tokens slice
+	Type         NodeType
+	TokenID      int // index into tokens slice
 	SubtreeStart int // index into nodes slice (first child in postorder)
 	HasError     bool
 }
 
+type ParseError struct {
+	Message string
+}
+
+func (e *ParseError) Error() string {
+	return e.Message
+}
+
+type ErrorList []error
+
+func (e ErrorList) Error() string {
+	messages := make([]string, len(e))
+	for i, err := range e {
+		messages[i] = err.Error()
+	}
+	return strings.Join(messages, "\n")
+}
+
+func (e ErrorList) Err() error {
+	if len(e) == 0 {
+		return nil
+	}
+	return e
+}
+
 type Parser struct {
 	tokens []lex.Token
-	pos    int    // current token index
-	nodes  []Node // postorder storage
+	tokIdx int
+	nodes  []Node
+	errors ErrorList
 }
 
 func newParser(tokens []lex.Token) *Parser {
 	return &Parser{
 		tokens: tokens,
-		pos:    0,
-		nodes:  make([]Node, 0, len(tokens)), // pre-size for efficiency
+		tokIdx: 0,
+		nodes:  make([]Node, 0, len(tokens)),
 	}
 }
 
 func (p *Parser) currentToken() lex.Token {
-	if p.pos >= len(p.tokens) {
-		return p.tokens[len(p.tokens)-1] // EOF token
-	}
-	return p.tokens[p.pos]
+	return p.tokens[p.tokIdx]
 }
 
 func (p *Parser) currentTokenType() lex.TokenType {
@@ -47,26 +86,25 @@ func (p *Parser) currentTokenType() lex.TokenType {
 }
 
 func (p *Parser) consume() lex.Token {
+	assert(p.tokIdx < len(p.tokens), "consuming past EOF")
 	token := p.currentToken()
-	if p.pos < len(p.tokens)-1 { // don't advance past EOF
-		p.pos++
-	}
+	p.tokIdx++
 	return token
 }
 
-func (p *Parser) addLeafNode(kind NodeKind, tokenIndex int) {
+func (p *Parser) addLeafNode(nodeType NodeType, tokenIndex int) {
 	p.nodes = append(p.nodes, Node{
-		Kind:         kind,
-		Token:        tokenIndex,
-		SubtreeStart: len(p.nodes), // points to itself for leaves
+		Type:         nodeType,
+		TokenID:      tokenIndex,
+		SubtreeStart: len(p.nodes), // leaf nodes point to themselves
 		HasError:     false,
 	})
 }
 
-func (p *Parser) addNode(kind NodeKind, tokenIndex int, subtreeStart int) {
+func (p *Parser) addNode(nodeType NodeType, tokenIndex int, subtreeStart int) {
 	p.nodes = append(p.nodes, Node{
-		Kind:         kind,
-		Token:        tokenIndex,
+		Type:         nodeType,
+		TokenID:      tokenIndex,
 		SubtreeStart: subtreeStart,
 		HasError:     false,
 	})
@@ -76,8 +114,8 @@ func (p *Parser) parseAddExpr() {
 	subtreeStart := len(p.nodes)
 
 	// Add bracketing node
-	expressionToken := p.pos
-	p.addLeafNode(NodeExpression, expressionToken)
+	exprIdx := p.tokIdx
+	p.addLeafNode(NodeExpression, exprIdx)
 
 	// Parse first multiplicative
 	p.parseMulExpr()
@@ -87,7 +125,7 @@ func (p *Parser) parseAddExpr() {
 		leftStart := subtreeStart + 1 // Start after bracketing node
 
 		opType := p.currentTokenType()
-		opToken := p.pos
+		opToken := p.tokIdx
 		p.consume() // consume operator
 
 		// Parse right operand
@@ -111,7 +149,7 @@ func (p *Parser) parseMulExpr() {
 	// Parse additional primary expressions with operators
 	for p.currentTokenType() == lex.TokMul || p.currentTokenType() == lex.TokDiv {
 		opType := p.currentTokenType()
-		opToken := p.pos
+		opToken := p.tokIdx
 		p.consume() // consume operator
 
 		// Parse right operand
@@ -128,7 +166,7 @@ func (p *Parser) parseMulExpr() {
 
 func (p *Parser) parseInt() {
 	if p.currentTokenType() == lex.TokInt {
-		tokenIndex := p.pos
+		tokenIndex := p.tokIdx
 		p.consume()
 		p.addLeafNode(NodeInt, tokenIndex)
 	} else if p.currentTokenType() == lex.TokLParen {
@@ -143,11 +181,11 @@ func (p *Parser) parseInt() {
 			p.consume() // consume ')'
 		} else {
 			// Error: missing closing paren - emit invalid node
-			tokenIndex := p.pos
+			tokenIndex := p.tokIdx
 			p.consume()
 			node := Node{
-				Kind:         NodeInvalid,
-				Token:        tokenIndex,
+				Type:         NodeInvalid,
+				TokenID:      tokenIndex,
 				SubtreeStart: len(p.nodes),
 				HasError:     true,
 			}
@@ -155,11 +193,11 @@ func (p *Parser) parseInt() {
 		}
 	} else {
 		// Error case - emit invalid node and consume one token to avoid infinite loop
-		tokenIndex := p.pos
+		tokenIndex := p.tokIdx
 		p.consume()
 		node := Node{
-			Kind:         NodeInvalid,
-			Token:        tokenIndex,
+			Type:         NodeInvalid,
+			TokenID:      tokenIndex,
 			SubtreeStart: len(p.nodes),
 			HasError:     true,
 		}
@@ -167,15 +205,18 @@ func (p *Parser) parseInt() {
 	}
 }
 
-// Parse parses the tokens into a parse tree
-func Parse(tokens []lex.Token) []Node {
+func Parse(tokens []lex.Token) ([]Node, error) {
 	parser := newParser(tokens)
 
 	if len(tokens) == 0 || (len(tokens) == 1 && tokens[0].Type() == lex.TokEOF) {
-		return parser.nodes
+		return nil, ErrorList{&ParseError{Message: "expected expression"}}
 	}
 
 	parser.parseAddExpr()
 
-	return parser.nodes
+	err := parser.errors.Err()
+	if err != nil {
+		return nil, err
+	}
+	return parser.nodes, nil
 }

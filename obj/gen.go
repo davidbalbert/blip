@@ -44,13 +44,13 @@ func (ctx *codegenContext) walkNodes() {
 }
 
 func (ctx *codegenContext) processNode(node parse.Node) {
-	switch node.Kind {
+	switch node.Type {
 	case parse.NodeExpression:
 		// Bracketing node - no code generated
 		return
 
 	case parse.NodeInt:
-		token := ctx.tokens[node.Token]
+		token := ctx.tokens[node.TokenID]
 		value := ctx.getIntValue(token)
 
 		if ctx.depth == 0 {

@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/davidbalbert/blip/compile"
+	"github.com/davidbalbert/blip/lex"
+	"github.com/davidbalbert/blip/macho"
+	"github.com/davidbalbert/blip/obj"
+	"github.com/davidbalbert/blip/parse"
 )
 
 func main() {
@@ -20,7 +23,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	objData := compile.Compile(content)
+	tokens := lex.Lex(content)
+	nodes := parse.Parse(tokens)
+	text := obj.Codegen(nodes, tokens, content)
+
+	objData := macho.Generate(text)
 
 	objFile := sourceFile + ".o"
 	if err := os.WriteFile(objFile, objData, 0644); err != nil {

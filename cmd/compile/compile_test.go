@@ -1,4 +1,4 @@
-package compile
+package main
 
 import (
 	"os"
@@ -20,12 +20,12 @@ func setupTestEnvironment(t *testing.T) {
 		blipCompileBinary = filepath.Join(tmpDir, "blip-compile")
 		blipLinkBinary = filepath.Join(tmpDir, "blip-link")
 
-		buildCompileCmd := exec.Command("go", "build", "-o", blipCompileBinary, "../cmd/compile")
+		buildCompileCmd := exec.Command("go", "build", "-o", blipCompileBinary, ".")
 		if err := buildCompileCmd.Run(); err != nil {
 			t.Fatalf("failed to build blip compile binary: %v", err)
 		}
 
-		buildLinkCmd := exec.Command("go", "build", "-o", blipLinkBinary, "../cmd/link")
+		buildLinkCmd := exec.Command("go", "build", "-o", blipLinkBinary, "../link")
 		if err := buildLinkCmd.Run(); err != nil {
 			t.Fatalf("failed to build blip link binary: %v", err)
 		}

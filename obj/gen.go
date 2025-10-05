@@ -45,8 +45,7 @@ func (ctx *codegenContext) walkNodes() {
 
 func (ctx *codegenContext) processNode(node parse.Node) {
 	switch node.Type {
-	case parse.NodeExpression:
-		// Bracketing node - no code generated
+	case parse.NodeExpr:
 		return
 
 	case parse.NodeInt:

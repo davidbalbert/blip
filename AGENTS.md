@@ -1,5 +1,8 @@
 # Blip Compiler Project
 
+## Instructions to the agent (YOU MUST FOLLOW THESE)
+- Always run tests after making changes.
+
 ## Overview
 Blip is an incremental compiler written in Go using data-oriented design principles. The project is being built from the ground up, starting with minimal functionality and expanding incrementally.
 

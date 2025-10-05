@@ -7,7 +7,7 @@ import (
 )
 
 // Grammar:
-//   Expression → AddExpr
+//   Expr → AddExpr
 //   AddExpr    → MulExpr (('+' | '-') MulExpr)*
 //   MulExpr    → Primary (('*' | '/') Primary)*
 //   Primary    → INT | '(' AddExpr ')'
@@ -21,14 +21,35 @@ func assert(condition bool, message string) {
 type NodeType uint8
 
 const (
-	NodeInvalid    NodeType = iota
-	NodeInt                 // leaf: integer literal
-	NodeAdd                 // binary: left + right (childCount = 2)
-	NodeSub                 // binary: left - right (childCount = 2)
-	NodeMul                 // binary: left * right (childCount = 2)
-	NodeDiv                 // binary: left / right (childCount = 2)
-	NodeExpression          // root expression node (bracketing)
+	NodeInvalid NodeType = iota
+	NodeInt              // leaf: integer literal
+	NodeAdd              // binary: left + right (childCount = 2)
+	NodeSub              // binary: left - right (childCount = 2)
+	NodeMul              // binary: left * right (childCount = 2)
+	NodeDiv              // binary: left / right (childCount = 2)
+	NodeExpr             // root expression node
 )
+
+func (t NodeType) String() string {
+	switch t {
+	case NodeInvalid:
+		return "Invalid"
+	case NodeInt:
+		return "Int"
+	case NodeAdd:
+		return "Add"
+	case NodeSub:
+		return "Sub"
+	case NodeMul:
+		return "Mul"
+	case NodeDiv:
+		return "Div"
+	case NodeExpr:
+		return "Expr"
+	default:
+		return "Unknown"
+	}
+}
 
 type Node struct {
 	Type         NodeType
@@ -111,18 +132,12 @@ func (p *Parser) addNode(nodeType NodeType, tokenIndex int, subtreeStart int) {
 }
 
 func (p *Parser) parseAddExpr() {
-	subtreeStart := len(p.nodes)
-
-	// Add bracketing node
-	exprIdx := p.tokIdx
-	p.addLeafNode(NodeExpression, exprIdx)
-
 	// Parse first multiplicative
 	p.parseMulExpr()
 
 	// Parse additional multiplicative expressions with operators
 	for p.currentTokenType() == lex.TokAdd || p.currentTokenType() == lex.TokSub {
-		leftStart := subtreeStart + 1 // Start after bracketing node
+		leftStart := len(p.nodes) - 1
 
 		opType := p.currentTokenType()
 		opToken := p.tokIdx
@@ -144,7 +159,7 @@ func (p *Parser) parseMulExpr() {
 	leftStart := len(p.nodes)
 
 	// Parse first primary
-	p.parseInt()
+	p.parsePrimary()
 
 	// Parse additional primary expressions with operators
 	for p.currentTokenType() == lex.TokMul || p.currentTokenType() == lex.TokDiv {
@@ -153,7 +168,7 @@ func (p *Parser) parseMulExpr() {
 		p.consume() // consume operator
 
 		// Parse right operand
-		p.parseInt()
+		p.parsePrimary()
 
 		// Emit operator node in postorder (children already emitted)
 		if opType == lex.TokMul {
@@ -164,7 +179,7 @@ func (p *Parser) parseMulExpr() {
 	}
 }
 
-func (p *Parser) parseInt() {
+func (p *Parser) parsePrimary() {
 	if p.currentTokenType() == lex.TokInt {
 		tokenIndex := p.tokIdx
 		p.consume()
@@ -205,6 +220,17 @@ func (p *Parser) parseInt() {
 	}
 }
 
+func (p *Parser) parseExpr() {
+	subtreeStart := len(p.nodes)
+
+	p.parseAddExpr()
+
+	eofToken := p.tokIdx
+	p.consume() // consume EOF
+
+	p.addNode(NodeExpr, eofToken, subtreeStart)
+}
+
 func Parse(tokens []lex.Token) ([]Node, error) {
 	parser := newParser(tokens)
 
@@ -212,7 +238,7 @@ func Parse(tokens []lex.Token) ([]Node, error) {
 		return nil, ErrorList{&ParseError{Message: "expected expression"}}
 	}
 
-	parser.parseAddExpr()
+	parser.parseExpr()
 
 	err := parser.errors.Err()
 	if err != nil {

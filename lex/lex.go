@@ -1,5 +1,7 @@
 package lex
 
+import "fmt"
+
 type TokenType uint8
 
 const (
@@ -14,6 +16,31 @@ const (
 	TokRParen
 )
 
+func (t TokenType) String() string {
+	switch t {
+	case TokInvalid:
+		return "Invalid"
+	case TokEOF:
+		return "EOF"
+	case TokInt:
+		return "Int"
+	case TokAdd:
+		return "Add"
+	case TokSub:
+		return "Sub"
+	case TokMul:
+		return "Mul"
+	case TokDiv:
+		return "Div"
+	case TokLParen:
+		return "LParen"
+	case TokRParen:
+		return "RParen"
+	default:
+		return "Unknown"
+	}
+}
+
 type Token uint32
 
 func NewToken(TokenType TokenType, pos uint32) Token {
@@ -27,6 +54,10 @@ func (t Token) Type() TokenType {
 
 func (t Token) Pos() uint32 {
 	return uint32(t) & 0xFFFFFF
+}
+
+func (t Token) String() string {
+	return fmt.Sprintf("{%s Pos=%d}", t.Type(), t.Pos())
 }
 
 type Lexer struct {

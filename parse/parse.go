@@ -21,13 +21,15 @@ func assert(condition bool, message string) {
 type NodeType uint8
 
 const (
-	NodeInvalid NodeType = iota
-	NodeInt              // leaf: integer literal
-	NodeAdd              // binary: left + right (childCount = 2)
-	NodeSub              // binary: left - right (childCount = 2)
-	NodeMul              // binary: left * right (childCount = 2)
-	NodeDiv              // binary: left / right (childCount = 2)
-	NodeExpr             // root expression node
+	NodeInvalid        NodeType = iota
+	NodeInt                     // leaf: integer literal
+	NodeAdd                     // binary: left + right (childCount = 2)
+	NodeSub                     // binary: left - right (childCount = 2)
+	NodeMul                     // binary: left * right (childCount = 2)
+	NodeDiv                     // binary: left / right (childCount = 2)
+	NodeParenExprStart          // bracketing: '(' introducer (first child)
+	NodeParenExpr               // parenthesized expression root
+	NodeExpr                    // root expression node
 )
 
 func (t NodeType) String() string {
@@ -44,6 +46,10 @@ func (t NodeType) String() string {
 		return "Mul"
 	case NodeDiv:
 		return "Div"
+	case NodeParenExprStart:
+		return "ParenExprStart"
+	case NodeParenExpr:
+		return "ParenExpr"
 	case NodeExpr:
 		return "Expr"
 	default:
@@ -185,17 +191,20 @@ func (p *Parser) parsePrimary() {
 		p.consume()
 		p.addLeafNode(NodeInt, tokenIndex)
 	} else if p.currentTokenType() == lex.TokLParen {
-		// Parse parenthesized expression
+		subtreeStart := len(p.nodes)
+
+		lparenToken := p.tokIdx
 		p.consume() // consume '('
 
-		// Recursively parse the inner expression (additive level)
+		p.addLeafNode(NodeParenExprStart, lparenToken)
+
 		p.parseAddExpr()
 
-		// Consume closing paren (should be there, but handle error if missing)
 		if p.currentTokenType() == lex.TokRParen {
+			rparenToken := p.tokIdx
 			p.consume() // consume ')'
+			p.addNode(NodeParenExpr, rparenToken, subtreeStart)
 		} else {
-			// Error: missing closing paren - emit invalid node
 			tokenIndex := p.tokIdx
 			p.consume()
 			node := Node{
@@ -207,7 +216,6 @@ func (p *Parser) parsePrimary() {
 			p.nodes = append(p.nodes, node)
 		}
 	} else {
-		// Error case - emit invalid node and consume one token to avoid infinite loop
 		tokenIndex := p.tokIdx
 		p.consume()
 		node := Node{

@@ -59,6 +59,16 @@ func sexpr(nodes []Node, tokens []lex.Token, source string) string {
 				op = "div"
 			}
 			stack = append(stack, fmt.Sprintf("(%s %s %s)", op, left, right))
+		case NodeParenExprStart:
+			stack = append(stack, "paren-start")
+		case NodeParenExpr:
+			if len(stack) < 2 {
+				return "<malformed tree>"
+			}
+			innerExpr := stack[len(stack)-1]
+			lparen := stack[len(stack)-2]
+			stack = stack[:len(stack)-2]
+			stack = append(stack, fmt.Sprintf("(paren %s %s)", lparen, innerExpr))
 		case NodeExpr:
 			if len(stack) < 1 {
 				return "<malformed tree>"
@@ -98,8 +108,8 @@ func TestParser(t *testing.T) {
 		{"left_assoc_add", "1 + 2 + 3", "(expr (add (add 1 2) 3))"},
 		{"left_assoc_mul", "2 * 3 * 4", "(expr (mul (mul 2 3) 4))"},
 		{"complex", "10 + 2 * 3 - 8 / 4", "(expr (sub (add 10 (mul 2 3)) (div 8 4)))"},
-		{"parens_basic", "(2 + 3) * 4", "(expr (mul (add 2 3) 4))"},
-		{"parens_nested", "((2 + 3) * 4) - 5", "(expr (sub (mul (add 2 3) 4) 5))"},
+		{"parens_basic", "(2 + 3) * 4", "(expr (mul (paren paren-start (add 2 3)) 4))"},
+		{"parens_nested", "((2 + 3) * 4) - 5", "(expr (sub (paren paren-start (mul (paren paren-start (add 2 3)) 4)) 5))"},
 	}
 
 	for _, tc := range tests {
@@ -108,6 +118,19 @@ func TestParser(t *testing.T) {
 			nodes, err := Parse(tokens)
 			if err != nil {
 				t.Fatalf("parse failed: %v", err)
+			}
+
+			// in a valid parse tree there's a 1:1 mapping from nodes to tokens
+			if len(nodes) != len(tokens) {
+				t.Errorf("should be equal: len(nodes)=%d, len(tokens)=%d", len(nodes), len(tokens))
+			}
+
+			seen := make(map[int]bool)
+			for _, node := range nodes {
+				if seen[node.TokenID] {
+					t.Errorf("token %d appears in multiple nodes", node.TokenID)
+				}
+				seen[node.TokenID] = true
 			}
 
 			actual := sexpr(nodes, tokens, tc.source)

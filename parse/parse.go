@@ -12,12 +12,6 @@ import (
 //   MulExpr    → Primary (('*' | '/') Primary)*
 //   Primary    → INT | '(' AddExpr ')'
 
-func assert(condition bool, message string) {
-	if !condition {
-		panic(message)
-	}
-}
-
 type NodeType uint8
 
 const (
@@ -113,7 +107,6 @@ func (p *Parser) currentTokenType() lex.TokenType {
 }
 
 func (p *Parser) consume() lex.Token {
-	assert(p.tokIdx < len(p.tokens), "consuming past EOF")
 	token := p.currentToken()
 	p.tokIdx++
 	return token
@@ -233,6 +226,19 @@ func (p *Parser) parseExpr() {
 
 	p.parseAddExpr()
 
+	if p.currentTokenType() != lex.TokEOF {
+		tokenIndex := p.tokIdx
+		p.consume()
+		node := Node{
+			Type:         NodeInvalid,
+			TokenID:      tokenIndex,
+			SubtreeStart: len(p.nodes),
+			HasError:     true,
+		}
+		p.nodes = append(p.nodes, node)
+		return
+	}
+
 	eofToken := p.tokIdx
 	p.consume() // consume EOF
 
@@ -247,10 +253,5 @@ func Parse(tokens []lex.Token) ([]Node, error) {
 	}
 
 	parser.parseExpr()
-
-	err := parser.errors.Err()
-	if err != nil {
-		return nil, err
-	}
-	return parser.nodes, nil
+	return parser.nodes, parser.errors.Err()
 }

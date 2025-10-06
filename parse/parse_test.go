@@ -179,6 +179,13 @@ expected expression`,
 ^
 expected expression`,
 		},
+		{
+			name:   "empty_file",
+			source: "",
+			expectedError: `
+^
+expected expression`,
+		},
 	}
 
 	for _, tc := range tests {

@@ -64,6 +64,7 @@ type Lexer struct {
 	text      []byte
 	pos       uint32
 	lineStart uint32
+	lineId    int
 }
 
 func NewLexer(text []byte) *Lexer {
@@ -71,6 +72,7 @@ func NewLexer(text []byte) *Lexer {
 		text:      text,
 		pos:       0,
 		lineStart: 0,
+		lineId:    0,
 	}
 }
 
@@ -79,6 +81,7 @@ func (l *Lexer) NextToken() Token {
 		if l.text[l.pos] == '\n' {
 			l.pos++
 			l.lineStart = l.pos
+			l.lineId++
 		} else {
 			l.pos++
 		}
@@ -136,19 +139,27 @@ func isDigit(ch byte) bool {
 }
 
 type Tokens struct {
-	Tokens      []Token
-	LineOffsets []uint32
+	Tokens     []Token
+	LineIDs    []int    // the line id for each token. len(LineIDs) == len(Tokens)
+	LineStarts []uint32 // the byte offset of each line. len(LineStarts) == count("\n")
 }
 
 func Lex(text []byte) Tokens {
 	lexer := NewLexer(text)
 	var tokens []Token
-	var lineOffsets []uint32
+	var lineStarts []uint32
+	var lineIDs []int
+
+	lineStarts = append(lineStarts, 0)
 
 	for {
 		token := lexer.NextToken()
 		tokens = append(tokens, token)
-		lineOffsets = append(lineOffsets, token.Pos()-lexer.lineStart)
+		lineIDs = append(lineIDs, lexer.lineId)
+
+		if lexer.lineId >= len(lineStarts) {
+			lineStarts = append(lineStarts, lexer.lineStart)
+		}
 
 		if token.Type() == TokEOF {
 			break
@@ -156,7 +167,8 @@ func Lex(text []byte) Tokens {
 	}
 
 	return Tokens{
-		Tokens:      tokens,
-		LineOffsets: lineOffsets,
+		Tokens:     tokens,
+		LineIDs:    lineIDs,
+		LineStarts: lineStarts,
 	}
 }

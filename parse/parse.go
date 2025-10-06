@@ -59,28 +59,14 @@ type Node struct {
 }
 
 type ParseError struct {
-	message    string
-	source     []byte
-	pos        uint32
-	lineOffset uint32
+	message     string
+	sourceLine  string
+	errorOffset uint32
 }
 
 func (e *ParseError) Error() string {
-	lineStart := e.pos
-	for lineStart > 0 && e.source[lineStart-1] != '\n' {
-		lineStart--
-	}
-
-	lineEnd := e.pos
-	for int(lineEnd) < len(e.source) && e.source[lineEnd] != '\n' {
-		lineEnd++
-	}
-
-	sourceLine := string(e.source[lineStart:lineEnd])
-
-	caret := strings.Repeat(" ", int(e.lineOffset)) + "^"
-
-	return sourceLine + "\n" + caret + "\n" + e.message
+	caret := strings.Repeat(" ", int(e.errorOffset)) + "^"
+	return e.sourceLine + "\n" + caret + "\n" + e.message
 }
 
 type ErrorList []error
@@ -101,21 +87,23 @@ func (e ErrorList) Err() error {
 }
 
 type Parser struct {
-	tokens      []lex.Token
-	lineOffsets []uint32
-	source      []byte
-	tokenIndex  int
-	nodes       []Node
-	errors      ErrorList
+	tokens     []lex.Token
+	lineStarts []uint32
+	lineIDs    []int
+	source     []byte
+	tokenIndex int
+	nodes      []Node
+	errors     ErrorList
 }
 
 func newParser(tokens lex.Tokens, source []byte) *Parser {
 	return &Parser{
-		tokens:      tokens.Tokens,
-		lineOffsets: tokens.LineOffsets,
-		source:      source,
-		tokenIndex:  0,
-		nodes:       make([]Node, 0, len(tokens.Tokens)),
+		tokens:     tokens.Tokens,
+		lineStarts: tokens.LineStarts,
+		lineIDs:    tokens.LineIDs,
+		source:     source,
+		tokenIndex: 0,
+		nodes:      make([]Node, 0, len(tokens.Tokens)),
 	}
 }
 
@@ -153,11 +141,22 @@ func (p *Parser) addNode(nodeType NodeType, tokenIndex int, subtreeStart int) {
 
 func (p *Parser) addError(message string, tokenIndex int) {
 	pos := p.tokens[tokenIndex].Pos()
+	lineID := p.lineIDs[tokenIndex]
+	lineStart := p.lineStarts[lineID]
+
+	var lineEnd uint32
+	if lineID+1 < len(p.lineStarts) {
+		lineEnd = p.lineStarts[lineID+1] - 1
+	} else {
+		lineEnd = uint32(len(p.source))
+	}
+
+	sourceLine := string(p.source[lineStart:lineEnd])
+
 	p.errors = append(p.errors, &ParseError{
-		message:    message,
-		source:     p.source,
-		pos:        pos,
-		lineOffset: p.lineOffsets[tokenIndex],
+		message:     message,
+		sourceLine:  sourceLine,
+		errorOffset: pos - lineStart,
 	})
 }
 
@@ -259,6 +258,11 @@ func (p *Parser) parsePrimary() {
 }
 
 func (p *Parser) parseExpr() {
+	if p.currentTokenType() == lex.TokEOF {
+		p.addError("expected expression", p.tokenIndex)
+		return
+	}
+
 	subtreeStart := len(p.nodes)
 
 	p.parseAddExpr()
@@ -286,15 +290,6 @@ func (p *Parser) parseExpr() {
 
 func Parse(tokens lex.Tokens, source []byte) ([]Node, error) {
 	parser := newParser(tokens, source)
-
-	if len(tokens.Tokens) == 0 || (len(tokens.Tokens) == 1 && tokens.Tokens[0].Type() == lex.TokEOF) {
-		return nil, ErrorList{&ParseError{
-			message:    "expected expression",
-			source:     source,
-			pos:        0,
-			lineOffset: 0,
-		}}
-	}
 
 	parser.parseExpr()
 	return parser.nodes, parser.errors.Err()

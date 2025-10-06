@@ -24,15 +24,14 @@ func main() {
 	}
 
 	tokens := lex.Lex(content)
-	nodes, err := parse.Parse(tokens)
+	nodes, err := parse.Parse(tokens, content)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "parse: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
-	text := obj.Codegen(nodes, tokens, content)
+	insns := obj.Codegen(nodes, tokens.Tokens, content)
 
-	objData := macho.Generate(text)
-
+	objData := macho.Generate(insns)
 	objFile := sourceFile + ".o"
 	if err := os.WriteFile(objFile, objData, 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "write: %v\n", err)

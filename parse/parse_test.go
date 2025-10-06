@@ -29,14 +29,14 @@ func TestParser(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			tokens := lex.Lex([]byte(tc.source))
-			nodes, err := Parse(tokens)
+			nodes, err := Parse(tokens, []byte(tc.source))
 			if err != nil {
 				t.Fatalf("parse failed: %v", err)
 			}
 
 			// in a valid parse tree there's a 1:1 mapping from nodes to tokens
-			if len(nodes) != len(tokens) {
-				t.Errorf("should be equal: len(nodes)=%d, len(tokens)=%d", len(nodes), len(tokens))
+			if len(nodes) != len(tokens.Tokens) {
+				t.Errorf("should be equal: len(nodes)=%d, len(tokens)=%d", len(nodes), len(tokens.Tokens))
 			}
 
 			seen := make(map[int]bool)
@@ -47,7 +47,7 @@ func TestParser(t *testing.T) {
 				seen[node.TokenID] = true
 			}
 
-			actual := sexpr(nodes, tokens, tc.source)
+			actual := sexpr(nodes, tokens.Tokens, tc.source)
 			if actual != tc.expected {
 				t.Errorf("got \"%s\", want \"%s\"", actual, tc.expected)
 			}
@@ -136,4 +136,63 @@ func sexpr(nodes []Node, tokens []lex.Token, source string) string {
 	}
 
 	return stack[0]
+}
+
+func TestParserErrors(t *testing.T) {
+	tests := []struct {
+		name          string
+		source        string
+		expectedError string
+	}{
+		{
+			name:   "unexpected_token_after_expr",
+			source: "10 + 20 ]",
+			expectedError: `10 + 20 ]
+        ^
+expected operator or end of expression`,
+		},
+		{
+			name:   "missing_closing_paren",
+			source: "(10 + 20",
+			expectedError: `(10 + 20
+        ^
+expected ')' or operator`,
+		},
+		{
+			name:   "unexpected_token_in_primary",
+			source: "10 + ]",
+			expectedError: `10 + ]
+     ^
+expected expression`,
+		},
+		{
+			name:   "multiline_error",
+			source: "10 + 20\n+ ]",
+			expectedError: `+ ]
+  ^
+expected expression`,
+		},
+		{
+			name:   "error_at_line_start",
+			source: "] + 10",
+			expectedError: `] + 10
+^
+expected expression`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tokens := lex.Lex([]byte(tc.source))
+			_, err := Parse(tokens, []byte(tc.source))
+			if err == nil {
+				t.Fatalf("expected error, got none")
+			}
+
+			actual := err.Error()
+			if actual != tc.expectedError {
+				t.Errorf("got:\n%s\n\nwant:\n%s", actual, tc.expectedError)
+			}
+		})
+	}
 }

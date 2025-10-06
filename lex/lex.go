@@ -61,20 +61,27 @@ func (t Token) String() string {
 }
 
 type Lexer struct {
-	text []byte
-	pos  uint32
+	text      []byte
+	pos       uint32
+	lineStart uint32
 }
 
 func NewLexer(text []byte) *Lexer {
 	return &Lexer{
-		text: text,
-		pos:  0,
+		text:      text,
+		pos:       0,
+		lineStart: 0,
 	}
 }
 
 func (l *Lexer) NextToken() Token {
 	for l.pos < uint32(len(l.text)) && isWhitespace(l.text[l.pos]) {
-		l.pos++
+		if l.text[l.pos] == '\n' {
+			l.pos++
+			l.lineStart = l.pos
+		} else {
+			l.pos++
+		}
 	}
 
 	if l.pos >= uint32(len(l.text)) {
@@ -128,17 +135,28 @@ func isDigit(ch byte) bool {
 	return ch >= '0' && ch <= '9'
 }
 
-func Lex(text []byte) []Token {
+type Tokens struct {
+	Tokens      []Token
+	LineOffsets []uint32
+}
+
+func Lex(text []byte) Tokens {
 	lexer := NewLexer(text)
 	var tokens []Token
+	var lineOffsets []uint32
 
 	for {
 		token := lexer.NextToken()
 		tokens = append(tokens, token)
+		lineOffsets = append(lineOffsets, token.Pos()-lexer.lineStart)
+
 		if token.Type() == TokEOF {
 			break
 		}
 	}
 
-	return tokens
+	return Tokens{
+		Tokens:      tokens,
+		LineOffsets: lineOffsets,
+	}
 }

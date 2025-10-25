@@ -248,3 +248,5 @@ Summary
 - Adopt Carbon's data-oriented parse: flat postorder tree, strict structure contracts via bracketing and fixed arity, and a small state-machine parser with explicit handlers.
 - Keep parse permissive, context-light, and error-tolerant; push semantic checks to later phases.
 - Implement the specific node emission patterns (introducer, modifiers-before-introducer, optional clauses Case 1/2, operator precedence) to achieve a robust, incremental-friendly Blip parser.
+
+Reference: https://docs.carbon-lang.dev/toolchain/docs/parse.html

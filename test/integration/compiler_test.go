@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/davidbalbert/blip/internal/compile"
-	"github.com/davidbalbert/blip/internal/link"
+	"github.com/davidbalbert/blip/internal/cmd/compile"
+	"github.com/davidbalbert/blip/internal/cmd/link"
 )
 
 var testBinary string

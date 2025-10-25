@@ -14,10 +14,10 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 ## Architecture
 
 ### Code Structure
-- **`cmd/compile`** - Thin wrapper that calls `internal/compile.Main()`
-- **`cmd/link`** - Thin wrapper that calls `internal/link.Main()`
-- **`internal/compile`** - Compiler logic (importable for tests)
-- **`internal/link`** - Linker logic (importable for tests)
+- **`cmd/compile`** - Thin wrapper that calls `internal/cmd/compile.Main()`
+- **`cmd/link`** - Thin wrapper that calls `internal/cmd/link.Main()`
+- **`internal/cmd/compile`** - Compiler logic (importable for tests)
+- **`internal/cmd/link`** - Linker logic (importable for tests)
 - **`lex/`** - Lexer
 - **`parse/`** - Parser
 - **`obj/`** - Code generation
@@ -81,7 +81,7 @@ go run ./cmd/link test.bl.o test   # Creates executable
 
 ## Testing Architecture
 Integration tests use the cmd/go pattern:
-- Tests import `internal/compile` and `internal/link`
+- Tests import `internal/cmd/compile` and `internal/cmd/link`
 - Test binary acts as both compiler and linker via `BLIP_TEST_MODE` env var
 - `BLIP_TEST_MODE=compile` → runs `compile.Main()`
 - `BLIP_TEST_MODE=link` → runs `link.Main()`

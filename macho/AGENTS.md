@@ -5,21 +5,13 @@ The macho package generates Mach-O object files directly from machine code, bypa
 
 ## Architecture
 
-### MachOGenerator
-
-#### Data Structures
-```go
-type MachOGenerator struct {
-    textData []byte  // Raw machine code bytes
-}
-```
+### API
 
 #### Key Functions
-- `NewMachOGenerator()` - Create new generator
-- `SetTextData(data []byte)` - Set machine code to embed
-- `Generate() []byte` - Generate complete Mach-O object file
+- `Generate(text []byte) []byte` - Generate Mach-O object file from machine code
+- `GenerateExecutable(textData []byte, identifier string) []byte` - Generate Mach-O executable
 
-#### Mach-O Structure
+#### Mach-O Structure (Object Files)
 - **Header**: 64-bit Mach-O magic, ARM64 CPU type, object file type
 - **Load Commands**:
   - `LC_SEGMENT_64`: __TEXT segment with __text section
@@ -29,10 +21,13 @@ type MachOGenerator struct {
 
 #### Example Usage
 ```go
-machoGen := macho.NewMachOGenerator()
-machoGen.SetTextData(machineCode)
-objData := machoGen.Generate()
+// Generate object file
+objData := macho.Generate(machineCode)
 os.WriteFile("output.o", objData, 0644)
+
+// Generate executable
+exeData := macho.GenerateExecutable(machineCode, "myprogram")
+os.WriteFile("myprogram", exeData, 0755)
 ```
 
 ## Technical Details

@@ -13,17 +13,28 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 
 ## Architecture
 
+### Code Structure
+- **`cmd/compile`** - Thin wrapper that calls `internal/compile.Main()`
+- **`cmd/link`** - Thin wrapper that calls `internal/link.Main()`
+- **`internal/compile`** - Compiler logic (importable for tests)
+- **`internal/link`** - Linker logic (importable for tests)
+- **`lex/`** - Lexer
+- **`parse/`** - Parser
+- **`obj/`** - Code generation
+- **`macho/`** - Mach-O file generation
+- **`test/integration/`** - End-to-end integration tests
+
 ### Pipeline
 1. Lex `.bl` source file → token stream (`lex.Lex`)
 2. Parse token stream → parse tree (`parse.Parse`)
-3. Generate ARM64 machine code from parse tree (`codegen`)
-4. Generate Mach-O object file → `macho.MachOGenerator`
-5. Link into an ARM64 Mach-O executable with embedded ad-hoc code signature → `cmd/link`
+3. Generate ARM64 machine code from parse tree (`obj.Codegen`)
+4. Generate Mach-O object file → `macho.Generate`
+5. Link into an ARM64 Mach-O executable with embedded ad-hoc code signature → `internal/link.Link`
 
 ## File Extensions & Workflow
 - **Source**: `.bl` files
-- **Generated**: `.o` object files (during testing)
-- **Testing**: All compilation and execution testing is automated via Go tests
+- **Generated**: `.o` object files
+- **Testing**: Integration tests in `test/integration/` test the complete pipeline by executing the test binary as both compiler and linker
 
 ## Target Platforms
 - **Current**: ARM64 on macOS
@@ -31,7 +42,10 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 
 ## Key Commands
 - **Test**: `go test ./...` (all tests are automated)
-- **Development**: Do NOT build or run the compiler directly. All functionality should be tested through automated Go tests.
+- **Build Compiler**: `go build ./cmd/compile`
+- **Build Linker**: `go build ./cmd/link`
+- **Run Compiler**: `go run ./cmd/compile <source-file>`
+- **Run Linker**: `go run ./cmd/link <object-file> <output-executable>`
 
 ## Technical Notes
 - Generates object files directly without assembly intermediate step
@@ -49,7 +63,7 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 - Maintain incremental, test-driven development approach
 
 ## Example
-```
+```bash
 # test.bl
 10 + 5 - 3
 
@@ -60,7 +74,16 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 # 4. Object file generation → test.bl.o
 
 # Usage:
-go run ./cmd/compile test.bl
-go run ./cmd/link test.bl.o test
-./test; echo $?  # outputs: 12
+go run ./cmd/compile test.bl       # Creates test.bl.o
+go run ./cmd/link test.bl.o test   # Creates executable
+./test; echo $?                    # Outputs: 12
 ```
+
+## Testing Architecture
+Integration tests use the cmd/go pattern:
+- Tests import `internal/compile` and `internal/link`
+- Test binary acts as both compiler and linker via `BLIP_TEST_MODE` env var
+- `BLIP_TEST_MODE=compile` → runs `compile.Main()`
+- `BLIP_TEST_MODE=link` → runs `link.Main()`
+- Tests exec the test binary to exercise complete Main() paths
+- Changes to compiler or linker code invalidate test cache automatically

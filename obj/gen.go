@@ -8,7 +8,6 @@ import (
 	"github.com/davidbalbert/blip/parse"
 )
 
-// Codegen generates ARM64 machine code from a parse tree
 func Codegen(nodes []parse.Node, tokens []lex.Token, text []byte) []byte {
 	gen := arm64.Generator{}
 

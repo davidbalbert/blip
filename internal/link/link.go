@@ -29,12 +29,13 @@ func Main() {
 		os.Exit(1)
 	}
 
-	executable, err := Link(objFile, outFile, objData)
+	textData, _, err := extractTextSection(objData)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "error reading object file: %v\n", err)
 		os.Exit(1)
 	}
 
+	executable := macho.GenerateExecutable(textData, filepath.Base(outFile))
 	err = os.WriteFile(outFile, executable, 0755)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error writing executable: %v\n", err)

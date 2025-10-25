@@ -10,7 +10,6 @@ import (
 	"github.com/davidbalbert/blip/parse"
 )
 
-// Main is the main entry point for the compiler.
 func Main() {
 	if len(os.Args) != 2 {
 		fmt.Fprintf(os.Stderr, "usage: %s <source-file>\n", os.Args[0])

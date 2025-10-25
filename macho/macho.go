@@ -34,7 +34,7 @@ const (
 	VM_PROT_EXECUTE = 4
 )
 
-// Generate creates a Mach-O object file from machine code
+// Create a Mach-O object file from machine code
 func Generate(text []byte) []byte {
 	// Calculate offsets
 	textOffset := uint32(232) // header + commands (including build version)
@@ -128,7 +128,7 @@ func Generate(text []byte) []byte {
 	return result
 }
 
-// GenerateExecutable creates a Mach-O executable from machine code
+// Create Mach-O executable from machine code
 func GenerateExecutable(textData []byte, identifier string) []byte {
 	baseAddr := uint64(0x100000000)
 	textSize := uint64(len(textData))

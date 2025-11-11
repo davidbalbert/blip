@@ -4,13 +4,15 @@ LINUX_DATE := 2025-11-02
 LINUX_TAR := pkg/linux-$(LINUX_VERSION).tar.xz
 LINUX_URL := https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(LINUX_VERSION).tar.xz
 
+LINUX_IMAGE_SHA256 := 94d573898fa4f505a2f7fc720fd389bd6e9b5556cf8c3f9dec68893b5ddba96c
+
 BUSYBOX_VERSION := 1.36.1
 BUSYBOX_SHA256 := b8cc24c9574d809e7279c3be349795c5d5ceb6fdf19ca709f80cde50e47de314
 BUSYBOX_DATE := 2023-05-19
 BUSYBOX_TAR := pkg/busybox-$(BUSYBOX_VERSION).tar.bz2
 BUSYBOX_URL := https://busybox.net/downloads/busybox-$(BUSYBOX_VERSION).tar.bz2
 
-IMAGE_NAME := kbuild
+DOCKER_IMAGE_NAME := kbuild
 
 DOCKER_RUN_ARGS := \
 	-v $(PWD)/pkg:/pkg:ro \
@@ -29,7 +31,7 @@ DOCKER_RUN_ARGS := \
 .PHONY: all shell clean
 
 .container: Dockerfile
-	docker build -t $(IMAGE_NAME) .
+	docker build -t $(DOCKER_IMAGE_NAME) .
 	@touch .container
 
 $(LINUX_TAR):
@@ -47,10 +49,12 @@ $(BUSYBOX_TAR):
 	@touch .checksums
 
 out/Image: .container .checksums
-	docker run --rm $(DOCKER_RUN_ARGS) $(IMAGE_NAME)
+	docker run --rm $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE_NAME)
+	@echo "Verifying out/Image"
+	@cd out && echo "$(LINUX_IMAGE_SHA256) Image" | sha256sum -c -
 
 shell: .container .checksums
-	docker run -it --rm $(DOCKER_RUN_ARGS) --entrypoint /bin/bash $(IMAGE_NAME)
+	docker run -it --rm $(DOCKER_RUN_ARGS) --entrypoint /bin/bash $(DOCKER_IMAGE_NAME)
 
 clean:
 	rm -rf out/* pkg/* .container .checksums

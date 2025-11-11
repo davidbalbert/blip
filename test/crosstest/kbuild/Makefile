@@ -1,3 +1,5 @@
+ARCH := arm64
+
 LINUX_VERSION := 6.17.7
 LINUX_SHA256 := ddf2ea0d4439e1d57136be3623102af9458f601f5b1cb77e83246e88aea09d0e
 LINUX_DATE := 2025-11-02
@@ -60,7 +62,7 @@ $(BUSYBOX_TAR):
 shell: .container .checksums
 	docker run -it --rm $(DOCKER_RUN_ARGS) --entrypoint /bin/bash $(DOCKER_IMAGE_NAME)
 
-out/Image: $(DEPS) .container .checksums
+out/$(ARCH)/Image: $(DEPS) .container .checksums
 	docker run --rm $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE_NAME)
 	@echo "Verifying out/Image"
 	@cd out && echo "$(LINUX_IMAGE_SHA256) Image" | sha256sum -c -

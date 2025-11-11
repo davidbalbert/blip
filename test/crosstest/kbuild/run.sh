@@ -4,5 +4,5 @@ qemu-system-aarch64 \
   -accel hvf \
   -nographic \
   -m 1G \
-  -kernel ./out/Image \
+  -kernel ./out/arm64/Image \
   -append "console=ttyAMA0 loglevel=0"

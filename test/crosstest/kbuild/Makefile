@@ -37,7 +37,7 @@ DEPS := \
 	init.sh
 
 .DEFAULT_GOAL := out/Image
-.PHONY: all shell clean
+.PHONY: shell clean
 
 .container: Dockerfile
 	docker build -t $(DOCKER_IMAGE_NAME) .

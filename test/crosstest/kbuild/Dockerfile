@@ -9,8 +9,6 @@ ENV TZ=UTC \
     LC_ALL=C.UTF-8 \
     DEBIAN_FRONTEND=noninteractive
 
-
-
 RUN <<EOF
 set -eux
 cat > /etc/apt/sources.list.d/debian.sources <<SOURCES
@@ -36,4 +34,4 @@ EOF
 
 WORKDIR /build
 
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["/build/build.sh"]

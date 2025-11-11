@@ -27,6 +27,15 @@ DOCKER_RUN_ARGS := \
 	-e LINUX_VERSION=$(LINUX_VERSION) \
 	-e LINUX_DATE=$(LINUX_DATE)
 
+DEPS := \
+	build.sh \
+	build-busybox.sh \
+	build-linux.sh \
+	config/busybox.config \
+	config/initramfs.list \
+	config/linux.config \
+	init.sh
+
 .DEFAULT_GOAL := out/Image
 .PHONY: all shell clean
 
@@ -48,13 +57,13 @@ $(BUSYBOX_TAR):
 	@cd pkg && echo "$(BUSYBOX_SHA256) busybox-$(BUSYBOX_VERSION).tar.bz2" | sha256sum -c -
 	@touch .checksums
 
-out/Image: .container .checksums
+shell: .container .checksums
+	docker run -it --rm $(DOCKER_RUN_ARGS) --entrypoint /bin/bash $(DOCKER_IMAGE_NAME)
+
+out/Image: $(DEPS) .container .checksums
 	docker run --rm $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE_NAME)
 	@echo "Verifying out/Image"
 	@cd out && echo "$(LINUX_IMAGE_SHA256) Image" | sha256sum -c -
-
-shell: .container .checksums
-	docker run -it --rm $(DOCKER_RUN_ARGS) --entrypoint /bin/bash $(DOCKER_IMAGE_NAME)
 
 clean:
 	rm -rf out/* pkg/* .container .checksums

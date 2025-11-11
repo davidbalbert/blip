@@ -11,4 +11,3 @@ cd "/build/busybox-${BUSYBOX_VERSION}"
 cp /config/busybox.config .config
 make -j$(nproc) -C "/src/busybox-${BUSYBOX_VERSION}" O="/build/busybox-${BUSYBOX_VERSION}" ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CONFIG_PREFIX=/build/rootfs
 make -j$(nproc) CONFIG_PREFIX=/build/rootfs install
-find /build/rootfs -exec touch --no-dereference --date="${BUSYBOX_DATE}" {} +

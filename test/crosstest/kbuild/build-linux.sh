@@ -1,7 +1,7 @@
 #!/bin/sh
 set -euo pipefail
 
-export KBUILD_BUILD_TIMESTAMP="${BUSYBOX_DATE}"
+export KBUILD_BUILD_TIMESTAMP="${LINUX_DATE}"
 export KBUILD_BUILD_USER=root
 export KBUILD_BUILD_HOST=build
 

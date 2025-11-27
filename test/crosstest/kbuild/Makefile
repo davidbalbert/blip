@@ -6,7 +6,7 @@ LINUX_DATE := 2025-11-02
 LINUX_TAR := pkg/linux-$(LINUX_VERSION).tar.xz
 LINUX_URL := https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(LINUX_VERSION).tar.xz
 
-LINUX_IMAGE_SHA256 := 94d573898fa4f505a2f7fc720fd389bd6e9b5556cf8c3f9dec68893b5ddba96c
+LINUX_IMAGE_SHA256 := 739eb5b6dadda82bba2766c488657a7191dfc2e23a3c404cec72831711ba8ba1
 
 BUSYBOX_VERSION := 1.36.1
 BUSYBOX_SHA256 := b8cc24c9574d809e7279c3be349795c5d5ceb6fdf19ca709f80cde50e47de314
@@ -38,7 +38,7 @@ DEPS := \
 	config/linux.config \
 	init.sh
 
-.DEFAULT_GOAL := out/Image
+.DEFAULT_GOAL := out/$(ARCH)/Image
 .PHONY: shell clean
 
 .container: Dockerfile
@@ -64,8 +64,8 @@ shell: .container .checksums
 
 out/$(ARCH)/Image: $(DEPS) .container .checksums
 	docker run --rm $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE_NAME)
-	@echo "Verifying out/Image"
-	@cd out && echo "$(LINUX_IMAGE_SHA256) Image" | sha256sum -c -
+	@echo "Verifying out/$(ARCH)/Image"
+	@cd out/$(ARCH) && echo "$(LINUX_IMAGE_SHA256) Image" | sha256sum -c -
 
 clean:
 	rm -rf out/* pkg/* .container .checksums

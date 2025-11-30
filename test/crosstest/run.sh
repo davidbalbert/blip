@@ -1,73 +1,53 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ $# -lt 2 ]; then
-  echo "Usage: $0 <program> -- [args...]" >&2
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 <program> [args...]" >&2
   exit 1
 fi
 
 program="$1"
 shift
 
-if [ "$1" != "--" ]; then
-  echo "Expected '--' separator" >&2
-  exit 1
-fi
-shift
-
-args_file=$(mktemp)
-stdout_pipe=$(mktemp -u)
-stderr_pipe=$(mktemp -u)
-control_pipe=$(mktemp -u)
-
-cleanup() {
-  rm -f "$args_file"
-  rm -f "${stdout_pipe}.in" "${stdout_pipe}.out"
-  rm -f "${stderr_pipe}.in" "${stderr_pipe}.out"
-  rm -f "${control_pipe}.in" "${control_pipe}.out"
-}
+tmpdir=$(mktemp -d)
+cleanup() { rm -rf "$tmpdir"; }
 trap cleanup EXIT
 
-printf '%s\0' "$@" > "$args_file"
+for p in stdin stdout stderr control; do
+  mkfifo "$tmpdir/$p.in" "$tmpdir/$p.out"
+done
 
-mkfifo "${stdout_pipe}.in"
-mkfifo "${stdout_pipe}.out"
-mkfifo "${stderr_pipe}.in"
-mkfifo "${stderr_pipe}.out"
-mkfifo "${control_pipe}.in"
-mkfifo "${control_pipe}.out"
+# Build payload: [8-byte total_size][8-byte program_size][program][8-byte args_size][args]
+send_payload() {
+  local program_size args_data args_size total_size
+  program_size=$(stat -f '%z' "$program")
+  args_data=$(printf '%s\0' "$@")
+  args_size=${#args_data}
+  total_size=$((8 + program_size + 8 + args_size))
 
-cat "${stdout_pipe}.out" &
-stdout_cat_pid=$!
+  printf '%08d%08d' "$total_size" "$program_size"
+  cat "$program"
+  printf '%08d%s' "$args_size" "$args_data"
+}
 
-cat "${stderr_pipe}.out" >&2 &
-stderr_cat_pid=$!
+cat > "$tmpdir/stdin.in" &
+cat "$tmpdir/stdout.out" &
+cat "$tmpdir/stderr.out" >&2 &
 
 qemu-system-aarch64 \
-  -machine virt,gic-version=3 \
-  -cpu host \
-  -accel hvf \
-  -nographic \
-  -m 1G \
+  -machine virt,gic-version=3 -cpu host -accel hvf \
+  -nographic -m 1G \
   -kernel ./kbuild/out/arm64/Image \
   -append "console=ttyAMA0 loglevel=0" \
-  -fw_cfg name=opt/program,file="$program" \
-  -fw_cfg name=opt/args,file="$args_file" \
   -device virtio-serial-device \
-  -chardev pipe,id=stdout,path="$stdout_pipe" \
-  -device virtserialport,chardev=stdout,nr=2 \
-  -chardev pipe,id=stderr,path="$stderr_pipe" \
-  -device virtserialport,chardev=stderr,nr=3 \
-  -chardev pipe,id=control,path="$control_pipe" \
-  -device virtserialport,chardev=control,nr=4 \
+  -chardev pipe,id=stdin,path="$tmpdir/stdin" -device virtserialport,chardev=stdin,nr=1 \
+  -chardev pipe,id=stdout,path="$tmpdir/stdout" -device virtserialport,chardev=stdout,nr=2 \
+  -chardev pipe,id=stderr,path="$tmpdir/stderr" -device virtserialport,chardev=stderr,nr=3 \
+  -chardev pipe,id=control,path="$tmpdir/control" -device virtserialport,chardev=control,nr=4 \
   >/dev/null 2>&1 &
 
-qemu_pid=$!
+send_payload "$@" > "$tmpdir/control.in" &
 
-read exit_code < "${control_pipe}.out"
-
-wait $stdout_cat_pid 2>/dev/null || true
-wait $stderr_cat_pid 2>/dev/null || true
-wait $qemu_pid 2>/dev/null || true
-
-exit $exit_code
+read exit_code < "$tmpdir/control.out"
+wait 2>/dev/null || true
+exit "$exit_code"

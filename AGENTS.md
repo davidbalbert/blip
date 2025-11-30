@@ -87,3 +87,28 @@ Integration tests use the cmd/go pattern:
 - `BLIP_TEST_MODE=link` → runs `link.Main()`
 - Tests exec the test binary to exercise complete Main() paths
 - Changes to compiler or linker code invalidate test cache automatically
+
+## Cross-Platform Testing (test/crosstest)
+Runs ARM64 Linux binaries in a QEMU VM for cross-platform testing on macOS.
+
+### Components
+- **`run.sh`** - Host script that launches QEMU, sends binary, captures output
+- **`kbuild/`** - Builds minimal Linux kernel with BusyBox initramfs
+- **`kbuild/init.sh`** - VM init script that receives and runs the binary
+
+### Protocol
+Uses virtio-serial pipes for communication:
+- Port 1: stdin, Port 2: stdout, Port 3: stderr, Port 4: control
+- Control channel sends: `[8-byte total_size][8-byte program_size][program][8-byte args_size][null-separated args]`
+- Returns exit code over control channel
+
+### Usage
+```bash
+cd test/crosstest
+./run.sh <program> [args...]
+```
+
+### Notes
+- Size fields use leading zeros; init.sh strips them to avoid octal interpretation
+- Always use `timeout` when testing run.sh to avoid hangs
+- Kernel image built via Docker: `make` in kbuild/

@@ -1,17 +1,22 @@
 package integration_test
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
+	"time"
 
 	"github.com/davidbalbert/blip/internal/cmd/compile"
 	"github.com/davidbalbert/blip/internal/cmd/link"
+	"github.com/davidbalbert/blip/platform"
 )
 
 var testBinary string
+var repoRoot string
 
 func TestMain(m *testing.M) {
 	switch os.Getenv("BLIP_TEST_MODE") {
@@ -29,20 +34,38 @@ func TestMain(m *testing.M) {
 		panic(fmt.Sprintf("failed to get test binary path: %v", err))
 	}
 
+	_, thisFile, _, _ := runtime.Caller(0)
+	repoRoot = filepath.Dir(filepath.Dir(filepath.Dir(thisFile)))
+
 	os.Exit(m.Run())
 }
 
-func run(cmd *exec.Cmd) int {
-	err := cmd.Run()
+func run(exePath string, targetOS platform.OS) (exitCode int, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	hostOS := platform.Host()
+	var cmd *exec.Cmd
+	if targetOS == hostOS {
+		cmd = exec.CommandContext(ctx, exePath)
+	} else if targetOS == platform.Linux && hostOS == platform.MacOS {
+		cmd = exec.CommandContext(ctx, "./run.sh", exePath)
+		cmd.Dir = filepath.Join(repoRoot, "test", "crosstest")
+	} else {
+		return 0, fmt.Errorf("unsupported target OS %q on host %q", targetOS, hostOS)
+	}
+
+	output, err := cmd.CombinedOutput()
+	if ctx.Err() == context.DeadlineExceeded {
+		return 0, fmt.Errorf("timed out")
+	}
 	if err == nil {
-		return 0
+		return 0, nil
 	}
-
 	if exitErr, ok := err.(*exec.ExitError); ok {
-		return exitErr.ExitCode()
+		return exitErr.ExitCode(), nil
 	}
-
-	panic(fmt.Sprintf("unexpected error running command: %v", err))
+	return 0, fmt.Errorf("unexpected error running command: %v\n%s", err, output)
 }
 
 func TestCompiler(t *testing.T) {
@@ -64,36 +87,44 @@ func TestCompiler(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+		for _, targetOS := range platform.OSs {
+			t.Run(tc.name+"/"+string(targetOS), func(t *testing.T) {
+				tmpDir := t.TempDir()
+				blFile := filepath.Join(tmpDir, "test.bl")
 
-			tmpDir := t.TempDir()
-			blFile := filepath.Join(tmpDir, "test.bl")
+				if err := os.WriteFile(blFile, []byte(tc.source), 0644); err != nil {
+					t.Fatalf("failed to write source file: %v", err)
+				}
 
-			if err := os.WriteFile(blFile, []byte(tc.source), 0644); err != nil {
-				t.Fatalf("failed to write source file: %v", err)
-			}
+				compileCmd := exec.Command(testBinary, blFile)
+				compileCmd.Env = append(os.Environ(),
+					"BLIP_TEST_MODE=compile",
+					"BLOS="+string(targetOS),
+				)
+				if output, err := compileCmd.CombinedOutput(); err != nil {
+					t.Fatalf("compilation failed: %v\n%s", err, output)
+				}
 
-			compileCmd := exec.Command(testBinary, blFile)
-			compileCmd.Env = append(os.Environ(), "BLIP_TEST_MODE=compile")
-			if err := compileCmd.Run(); err != nil {
-				t.Fatalf("compilation failed: %v", err)
-			}
+				objFile := blFile + ".o"
+				exeFile := filepath.Join(tmpDir, "test")
 
-			objFile := blFile + ".o"
-			exeFile := filepath.Join(tmpDir, "test")
+				linkCmd := exec.Command(testBinary, objFile, exeFile)
+				linkCmd.Env = append(os.Environ(),
+					"BLIP_TEST_MODE=link",
+					"BLOS="+string(targetOS),
+				)
+				if output, err := linkCmd.CombinedOutput(); err != nil {
+					t.Fatalf("linking failed: %v\n%s", err, output)
+				}
 
-			linkCmd := exec.Command(testBinary, objFile, exeFile)
-			linkCmd.Env = append(os.Environ(), "BLIP_TEST_MODE=link")
-			if err := linkCmd.Run(); err != nil {
-				t.Fatalf("linking failed: %v", err)
-			}
-
-			runCmd := exec.Command(exeFile)
-			exitCode := run(runCmd)
-			if exitCode != tc.expected {
-				t.Errorf("got %d, want %d", exitCode, tc.expected)
-			}
-		})
+				exitCode, err := run(exeFile, targetOS)
+				if err != nil {
+					t.Fatalf("failed to run binary: %v", err)
+				}
+				if exitCode != tc.expected {
+					t.Errorf("got %d, want %d", exitCode, tc.expected)
+				}
+			})
+		}
 	}
 }

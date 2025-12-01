@@ -7,7 +7,7 @@ stdout=/dev/vport0p2
 stderr=/dev/vport0p3
 control=/dev/vport0p4
 
-# Strip leading zeros to avoid octal interpretation
+# Strip leading zeros to avoid parsing as octal
 strip_zeros() {
   echo "$1" | sed 's/^0*//' | { read n; echo "${n:-0}"; }
 }

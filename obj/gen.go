@@ -6,9 +6,10 @@ import (
 	"github.com/davidbalbert/blip/lex"
 	"github.com/davidbalbert/blip/obj/arm64"
 	"github.com/davidbalbert/blip/parse"
+	"github.com/davidbalbert/blip/platform"
 )
 
-func Codegen(nodes []parse.Node, tokens []lex.Token, text []byte) []byte {
+func Codegen(targetOS platform.OS, nodes []parse.Node, tokens []lex.Token, text []byte) []byte {
 	gen := arm64.Generator{}
 
 	ctx := &codegenContext{
@@ -21,9 +22,16 @@ func Codegen(nodes []parse.Node, tokens []lex.Token, text []byte) []byte {
 
 	ctx.walkNodes()
 
-	// Add exit syscall
-	gen.MovImm16(16, 1) // mov x16, #1 (sys_exit)
-	gen.SVC(0x80)       // svc #0x80
+	switch targetOS {
+	case platform.Linux:
+		gen.MovImm(8, 93) // mov x8, #93 (sys_exit)
+		gen.SVC(0)        // svc #0
+	case platform.MacOS:
+		gen.MovImm(16, 1) // mov x16, #1 (sys_exit)
+		gen.SVC(0x80)     // svc #0x80
+	default:
+		panic("unsupported target OS: " + string(targetOS))
+	}
 
 	return gen.Bytes()
 }

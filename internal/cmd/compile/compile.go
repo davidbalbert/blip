@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/davidbalbert/blip/elf"
 	"github.com/davidbalbert/blip/lex"
 	"github.com/davidbalbert/blip/macho"
 	"github.com/davidbalbert/blip/obj"
 	"github.com/davidbalbert/blip/parse"
+	"github.com/davidbalbert/blip/platform"
 )
 
 func Main() {
@@ -29,9 +31,19 @@ func Main() {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
-	insns := obj.Codegen(nodes, tokens.Tokens, content)
+	t := platform.Target()
+	insns := obj.Codegen(t, nodes, tokens.Tokens, content)
 
-	objData := macho.Generate(insns)
+	var objData []byte
+	switch t {
+	case platform.MacOS:
+		objData = macho.Generate(insns)
+	case platform.Linux:
+		objData = elf.Generate(insns)
+	default:
+		fmt.Fprintf(os.Stderr, "unsupported target OS: %s\n", t)
+		os.Exit(1)
+	}
 	objFile := sourceFile + ".o"
 	if err := os.WriteFile(objFile, objData, 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "write: %v\n", err)

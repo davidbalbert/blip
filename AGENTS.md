@@ -9,7 +9,7 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 ## Current Status
 - **Language**: Go
 - **Design Philosophy**: Data-oriented design (CPU-friendly design, cache efficiency, memory layout optimization, keeping frequently used data together and small)
-- **Current Functionality**: Parses arithmetic expressions from `.bl` source files and generates Mach-O object files directly with ARM64 machine code
+- **Current Functionality**: Parses arithmetic expressions from `.bl` source files and generates Mach-O (macOS) or ELF (Linux) object files directly with ARM64 machine code
 
 ## Architecture
 
@@ -21,15 +21,17 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 - **`lex/`** - Lexer
 - **`parse/`** - Parser
 - **`obj/`** - Code generation
-- **`macho/`** - Mach-O file generation
+- **`macho/`** - Mach-O file generation (macOS)
+- **`elf/`** - ELF file generation (Linux)
+- **`target/`** - Target OS detection
 - **`test/integration/`** - End-to-end integration tests
 
 ### Pipeline
 1. Lex `.bl` source file → token stream (`lex.Lex`)
 2. Parse token stream → parse tree (`parse.Parse`)
 3. Generate ARM64 machine code from parse tree (`obj.Codegen`)
-4. Generate Mach-O object file → `macho.Generate`
-5. Link into an ARM64 Mach-O executable with embedded ad-hoc code signature → `internal/link.Link`
+4. Generate object file → `macho.Generate` (macOS) or `elf.Generate` (Linux)
+5. Link into executable → `internal/link.Link` (Mach-O with ad-hoc code signature on macOS, ELF on Linux)
 
 ## File Extensions & Workflow
 - **Source**: `.bl` files
@@ -37,8 +39,11 @@ Blip is an incremental compiler written in Go using data-oriented design princip
 - **Testing**: Integration tests in `test/integration/` test the complete pipeline by executing the test binary as both compiler and linker
 
 ## Target Platforms
-- **Current**: ARM64 on macOS
-- **Planned**: x86-64 on macOS and Linux, ARM64 on Linux
+- **Current**: ARM64 on macOS and Linux
+- **Planned**: x86-64 on macOS and Linux
+
+## Environment Variables
+- **`BLOS`** - Target OS for cross-compilation: `"macos"` or `"linux"` (defaults to host OS)
 
 ## Key Commands
 - **Test**: `go test ./...` (all tests are automated)

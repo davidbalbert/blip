@@ -16,14 +16,16 @@ BUSYBOX_URL := https://busybox.net/downloads/busybox-$(BUSYBOX_VERSION).tar.bz2
 
 DOCKER_IMAGE_NAME := kbuild
 
+MAKEFILE_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+
 DOCKER_RUN_ARGS := \
-	-v $(PWD)/pkg:/pkg:ro \
-	-v $(PWD)/config:/config:ro \
-	-v $(PWD)/build.sh:/build/build.sh:ro \
-	-v $(PWD)/build-busybox.sh:/build/build-busybox.sh:ro \
-	-v $(PWD)/build-linux.sh:/build/build-linux.sh:ro \
-	-v $(PWD)/init.sh:/src/init.sh:ro \
-	-v $(PWD)/out:/out:rw \
+	-v $(MAKEFILE_DIR)pkg:/pkg:ro \
+	-v $(MAKEFILE_DIR)config:/config:ro \
+	-v $(MAKEFILE_DIR)build.sh:/build/build.sh:ro \
+	-v $(MAKEFILE_DIR)build-busybox.sh:/build/build-busybox.sh:ro \
+	-v $(MAKEFILE_DIR)build-linux.sh:/build/build-linux.sh:ro \
+	-v $(MAKEFILE_DIR)init.sh:/src/init.sh:ro \
+	-v $(MAKEFILE_DIR)out:/out:rw \
 	-e BUSYBOX_VERSION=$(BUSYBOX_VERSION) \
 	-e BUSYBOX_DATE=$(BUSYBOX_DATE) \
 	-e LINUX_VERSION=$(LINUX_VERSION) \

@@ -7,12 +7,15 @@ stdout=/dev/vport0p2
 stderr=/dev/vport0p3
 control=/dev/vport0p4
 
+# Wait for virtio-serial driver to register ports
+while ! exec 3<>$control 2>/dev/null; do
+  sleep 0.001
+done
+
 # Strip leading zeros to avoid parsing as octal
 strip_zeros() {
   echo "$1" | sed 's/^0*//' | { read n; echo "${n:-0}"; }
 }
-
-exec 3<>$control
 
 # Protocol: [8-byte total_size][8-byte program_size][program][8-byte args_size][args]
 total_size=$(strip_zeros "$(dd bs=1 count=8 <&3 2>/dev/null)")

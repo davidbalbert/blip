@@ -10,7 +10,14 @@ program="$1"
 shift
 
 tmpdir=$(mktemp -d)
-cleanup() { rm -rf "$tmpdir"; }
+cleanup() {
+  local pids
+  pids=$(jobs -p)
+  if [ -n "$pids" ]; then
+    kill $pids 2>/dev/null || true
+  fi
+  rm -rf "$tmpdir"
+}
 trap cleanup EXIT
 
 for p in stdin stdout stderr control; do
@@ -49,5 +56,4 @@ qemu-system-aarch64 \
 send_payload "$@" > "$tmpdir/control.in" &
 
 read exit_code < "$tmpdir/control.out"
-wait 2>/dev/null || true
 exit "$exit_code"

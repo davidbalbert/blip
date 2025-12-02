@@ -6,7 +6,7 @@ LINUX_DATE := 2025-11-02
 LINUX_TAR := pkg/linux-$(LINUX_VERSION).tar.xz
 LINUX_URL := https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(LINUX_VERSION).tar.xz
 
-LINUX_IMAGE_SHA256 := cf67e065de67005caa508611a3b2c9551cb4fbb4b252f41897be422e1682d5f1
+LINUX_IMAGE_SHA256 := 89f0969aec8d7fe52a73a1112d3c3f0b11714bf2a7eef5225b31f1942afd2552
 
 BUSYBOX_VERSION := 1.36.1
 BUSYBOX_SHA256 := b8cc24c9574d809e7279c3be349795c5d5ceb6fdf19ca709f80cde50e47de314
@@ -64,6 +64,8 @@ shell: .container .checksums
 
 out/$(ARCH)/Image: $(DEPS) .container .checksums
 	docker run --rm $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE_NAME)
+	@echo "Verifying out/$(ARCH)/Image"
+	@cd out/$(ARCH) && echo "$(LINUX_IMAGE_SHA256) Image" | sha256sum -c -
 
 clean:
 	rm -rf out/* pkg/* .container .checksums
